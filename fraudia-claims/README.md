@@ -40,6 +40,19 @@ copy .env.example .env
 
 Configura `GEMINI_API_KEY` en `.env` si quieres usar Gemini. Si no hay API key, el agente usa una respuesta local de respaldo.
 
+Para usar PostgreSQL, configura en `.env`:
+
+```text
+DB_ENABLED=true
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_NAME=fraudia_claims
+DB_USER=postgres
+DB_PASSWORD=tu_password
+```
+
+Al iniciar, la API crea la base y la tabla si no existen, y siembra el CSV sintetico si la tabla esta vacia.
+
 ## Ejecucion
 
 ```bash
@@ -61,6 +74,8 @@ pytest -q
 ## Endpoints principales
 
 - `GET /health`
+- `GET /db/status`
+- `POST /db/init`
 - `POST /claims/upload`
 - `GET /claims`
 - `GET /claims/{id_siniestro}`
@@ -70,6 +85,9 @@ pytest -q
 - `GET /providers/ranking`
 - `GET /networks/providers`
 - `GET /stats/summary`
+- `GET /model/metrics`
+- `GET /reports/audit`
+- `GET /reports/audit.csv`
 - `POST /agent/query`
 
 Ejemplo de consulta al agente:

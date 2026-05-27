@@ -6,6 +6,7 @@ La arquitectura sigue la estructura sugerida por el documento del reto.
 Cliente o dashboard
   -> FastAPI
     -> ingestion/load_data.py
+    -> db/postgres.py
     -> features/build_features.py
     -> features/text_analysis.py
     -> rules/fraud_rules.py
@@ -19,7 +20,7 @@ El backend calcula el score de forma trazable. Gemini se usa para comunicacion e
 
 ## Flujo
 
-1. Se carga un CSV de siniestros.
+1. Se carga un CSV de siniestros o se lee PostgreSQL si esta activado.
 2. Se validan columnas minimas.
 3. Se calculan variables de riesgo.
 4. Se extraen senales NLP desde la narrativa del siniestro.
@@ -28,3 +29,9 @@ El backend calcula el score de forma trazable. Gemini se usa para comunicacion e
 7. Se genera score de 0 a 100.
 8. Se asigna semaforo: verde, amarillo o rojo.
 9. Se exponen explicaciones ejecutivas, redes de proveedores y agente conversacional.
+
+## Base de datos
+
+La persistencia PostgreSQL es opcional para mantener la demo reproducible con
+CSV. Al activar `DB_ENABLED=true`, la aplicacion inicializa la base y tabla al
+arrancar, y usa PostgreSQL como fuente del scoring.

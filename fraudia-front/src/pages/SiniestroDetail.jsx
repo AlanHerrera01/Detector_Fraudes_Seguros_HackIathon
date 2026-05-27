@@ -5,6 +5,42 @@ import ScoreGauge from '../components/ui/ScoreGauge'
 import AlertCard from '../components/ui/AlertCard'
 import { suggestedAction, formatCurrency, formatDate } from '../utils/riskHelpers'
 
+const ALERT_GROUPS = [
+  {
+    key: 'rf',
+    title: 'RF - Reglas fuertes',
+    subtitle: 'Miden senales criticas de fraude operativo: documentos alterados, listas restrictivas, perdida total por robo o dinamicas de alto riesgo.',
+    color: 'var(--risk-red)',
+  },
+  {
+    key: 's',
+    title: 'S - Senales de negocio',
+    subtitle: 'Miden comportamientos atipicos: fechas cercanas a vigencia, reporte tardio, frecuencia de reclamos, proveedor recurrente o monto elevado.',
+    color: 'var(--risk-yellow)',
+  },
+  {
+    key: 'nlp',
+    title: 'NLP - Narrativa del reclamo',
+    subtitle: 'Mide senales del texto libre: relato vago, inconsistente, terminos sensibles o combinaciones que requieren validacion documental.',
+    color: '#0ea5e9',
+  },
+]
+
+function alertGroupKey(alert) {
+  const code = String(alert?.codigo || '').toUpperCase()
+  if (code.startsWith('RF-')) return 'rf'
+  if (code.startsWith('NLP-')) return 'nlp'
+  if (code.startsWith('S-')) return 's'
+  return 's'
+}
+
+function groupAlerts(alerts = []) {
+  return ALERT_GROUPS.map((group) => ({
+    ...group,
+    alerts: alerts.filter((alert) => alertGroupKey(alert) === group.key),
+  }))
+}
+
 export default function SiniestroDetail() {
   const { id } = useParams()
   const api = useFraudData()
@@ -20,6 +56,7 @@ export default function SiniestroDetail() {
   if (!item) return <div>Cargando...</div>
 
   const action = suggestedAction(item.score)
+  const groupedAlerts = groupAlerts(item.alertas_detalle || [])
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 18 }}>
@@ -56,9 +93,18 @@ export default function SiniestroDetail() {
 
         <section style={{ marginTop: 14 }}>
           <h4>Alertas activadas</h4>
-          <div style={{ display: 'grid', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, marginBottom: 12 }}>
+            {ALERT_GROUPS.map((group) => (
+              <div key={group.key} style={{ border: '1px solid var(--border)', borderTop: `4px solid ${group.color}`, borderRadius: 8, padding: 12, background: '#f8fafc' }}>
+                <strong style={{ display: 'block', color: '#111827' }}>{group.title}</strong>
+                <p style={{ margin: '6px 0 0', color: 'var(--muted)', lineHeight: 1.45, fontSize: 13 }}>{group.subtitle}</p>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'grid', gap: 10 }}>
             {item.alertas_detalle.length
-              ? item.alertas_detalle.map((a) => <AlertCard key={a.codigo} alert={a} />)
+              ? groupedAlerts.map((group) => <AlertGroup key={group.key} group={group} />)
               : <div style={{ color: 'var(--muted)' }}>No hay alertas activadas.</div>}
           </div>
         </section>
@@ -87,6 +133,26 @@ export default function SiniestroDetail() {
           {explanation?.nota_etica || 'Alerta para revision humana; no confirma fraude.'}
         </div>
       </aside>
+    </div>
+  )
+}
+
+function AlertGroup({ group }) {
+  return (
+    <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: '#fff' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', padding: '10px 12px', borderLeft: `4px solid ${group.color}`, background: '#f8fafc' }}>
+        <div>
+          <strong>{group.title}</strong>
+          <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 2 }}>{group.alerts.length} senales detectadas</div>
+        </div>
+        <span style={{ fontFamily: 'var(--font-mono)', color: group.color }}>{group.alerts.reduce((total, alert) => total + Number(alert.puntos || 0), 0)} pts</span>
+      </div>
+
+      <div style={{ display: 'grid', gap: 8, padding: 10 }}>
+        {group.alerts.length
+          ? group.alerts.map((alert) => <AlertCard key={alert.codigo} alert={alert} />)
+          : <div style={{ color: 'var(--muted)', fontSize: 13 }}>Sin alertas de esta categoria.</div>}
+      </div>
     </div>
   )
 }

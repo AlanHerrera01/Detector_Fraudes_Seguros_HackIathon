@@ -1,0 +1,11 @@
+id_asegurado,segmento,antiguedad,ciudad,numero_polizas,reclamos_ultimos_12_meses,mora_actual,score_cliente_simulado
+ASE-001,Individual,3,Quito,1,0,No,82
+ASE-002,Individual,1,Guayaquil,2,2,No,58
+ASE-003,Familiar,4,Cuenca,1,0,No,77
+ASE-004,Individual,1,Quito,2,3,Si,42
+ASE-005,Familiar,2,Guayaquil,1,1,No,69
+ASE-006,Individual,5,Ambato,1,0,No,86
+ASE-007,Pyme,3,Cuenca,3,1,No,73
+ASE-008,Individual,1,Quito,2,2,Si,49
+ASE-009,Familiar,6,Loja,1,0,No,88
+ASE-010,Individual,4,Manta,1,1,No,71

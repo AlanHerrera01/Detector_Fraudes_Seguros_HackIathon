@@ -1,0 +1,11 @@
+id_poliza,id_asegurado,ramo,fecha_inicio,fecha_fin,prima,suma_asegurada,deducible,canal_venta,ciudad,estado_poliza
+POL-1001,ASE-001,Vehiculos,2025-09-05,2026-09-05,720,18000,450,Agente,Quito,Activa
+POL-1002,ASE-002,Vehiculos,2026-01-01,2026-12-31,980,22000,500,Digital,Guayaquil,Activa
+POL-1003,ASE-003,Hogar,2025-08-15,2026-08-15,410,30000,300,Bancaseguros,Cuenca,Activa
+POL-1004,ASE-004,Vehiculos,2025-12-20,2026-12-20,1250,28000,700,Agente,Quito,Activa
+POL-1005,ASE-005,Salud,2025-07-01,2026-07-01,860,15000,200,Digital,Guayaquil,Activa
+POL-1006,ASE-006,Vehiculos,2025-10-10,2026-10-10,690,16000,400,Agente,Ambato,Activa
+POL-1007,ASE-007,Generales,2025-11-01,2026-11-01,540,12000,250,Corredor,Cuenca,Activa
+POL-1008,ASE-008,Vehiculos,2025-05-25,2026-05-25,1120,26000,650,Digital,Quito,Activa
+POL-1009,ASE-009,Hogar,2025-06-14,2026-06-14,390,22000,300,Bancaseguros,Loja,Activa
+POL-1010,ASE-010,Vida,2025-04-01,2026-04-01,780,50000,0,Agente,Manta,Activa

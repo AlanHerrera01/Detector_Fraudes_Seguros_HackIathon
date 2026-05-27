@@ -30,11 +30,7 @@ def build_executive_explanation(claim: dict) -> dict:
         "id_siniestro": claim.get("id_siniestro"),
         "score_riesgo": claim.get("score_riesgo"),
         "nivel_riesgo": claim.get("nivel_riesgo"),
-        "resumen_ejecutivo": (
-            f"El caso {claim.get('id_siniestro')} presenta nivel {claim.get('nivel_riesgo')} "
-            f"con score {claim.get('score_riesgo')}/100. "
-            f"Las principales senales son: {'; '.join(reasons) if reasons else 'sin alertas criticas'}."
-        ),
+        "resumen_ejecutivo": _human_executive_summary(claim, reasons),
         "senales_principales": [
             {
                 "codigo": alert.get("code"),
@@ -52,6 +48,52 @@ def build_executive_explanation(claim: dict) -> dict:
             "para negar automaticamente un siniestro y puede contener falsos positivos."
         ),
     }
+
+
+def _human_executive_summary(claim: dict, reasons: list[str]) -> str:
+    level = claim.get("nivel_riesgo")
+    score = claim.get("score_riesgo")
+    claim_id = claim.get("id_siniestro")
+    cobertura = claim.get("cobertura")
+    proveedor = claim.get("beneficiario")
+    monto = claim.get("monto_reclamado")
+    suma = claim.get("suma_asegurada") or 0
+    ratio = claim.get("ratio_monto_suma") or 0
+    documentos_completos = str(claim.get("documentos_completos", "")).lower()
+    documentos_inconsistentes = str(claim.get("documentos_inconsistentes", "")).lower()
+    dias_reporte = claim.get("dias_entre_ocurrencia_reporte")
+
+    factors = []
+    if cobertura:
+        factors.append(f"la cobertura reportada ({cobertura})")
+    if documentos_completos in {"no", "false", "0"} or documentos_inconsistentes in {"si", "true", "1"}:
+        factors.append("documentacion incompleta o inconsistente")
+    if proveedor:
+        factors.append(f"el beneficiario/proveedor {proveedor}")
+    if ratio and ratio >= 0.9:
+        factors.append(f"un monto reclamado cercano a la suma asegurada ({round(float(ratio) * 100, 1)}%)")
+    elif monto and suma:
+        factors.append(f"un monto reclamado de {monto} frente a una suma asegurada de {suma}")
+    if dias_reporte and dias_reporte >= 4:
+        factors.append(f"un reporte realizado {dias_reporte} dias despues del evento")
+
+    if not factors and reasons:
+        factors = reasons[:3]
+
+    factor_text = ", ".join(factors[:4])
+    if len(factors) > 1:
+        last_separator = factor_text.rfind(", ")
+        factor_text = f"{factor_text[:last_separator]} y {factor_text[last_separator + 2:]}"
+
+    if not factor_text:
+        factor_text = "las senales disponibles en reglas y score"
+
+    return (
+        f"El caso {claim_id} requiere revision prioritaria porque presenta nivel {level} "
+        f"con score {score}/100 y combina {factor_text}. "
+        "Esta alerta no confirma fraude, pero si justifica validar soportes, fechas, proveedor "
+        "y narrativa antes de autorizar cualquier decision."
+    )
 
 
 def _recommended_actions(level: str | None, alerts: list[dict]) -> list[str]:

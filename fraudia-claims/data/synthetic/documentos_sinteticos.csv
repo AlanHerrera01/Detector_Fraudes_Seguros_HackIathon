@@ -1,0 +1,11 @@
+id_documento,id_siniestro,tipo_documento,entregado,legible,fecha_emision,inconsistencia_detectada,observacion
+DOC-0001,SIN-0001,Parte policial,Si,Si,2026-01-04,No,Documento completo y legible.
+DOC-0002,SIN-0002,Denuncia,Si,Si,2026-01-09,Si,Fecha de denuncia posterior al reporte inicial.
+DOC-0003,SIN-0002,Fotos del evento,No,No,,Si,No se adjuntaron fotografias del lugar.
+DOC-0004,SIN-0003,Factura,Si,Si,2026-02-12,No,Factura consistente con monto estimado.
+DOC-0005,SIN-0004,Denuncia,Si,No,2026-03-04,Si,Documento poco legible con datos incompletos.
+DOC-0006,SIN-0004,Cotizacion taller,Si,Si,2026-03-05,Si,Monto cercano a suma asegurada.
+DOC-0007,SIN-0005,Historia clinica,Si,Si,2026-03-18,No,Soporte medico completo.
+DOC-0008,SIN-0006,Parte policial,Si,Si,2026-04-02,No,Sin observaciones.
+DOC-0009,SIN-0007,Informe perito,Si,Si,2026-04-16,No,Informe consistente.
+DOC-0010,SIN-0008,Factura taller,Si,No,2026-05-03,Si,Factura con datos parcialmente ilegibles.

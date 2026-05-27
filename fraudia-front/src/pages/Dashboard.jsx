@@ -9,6 +9,19 @@ function pct(value, total) {
   return Math.round((value / total) * 100)
 }
 
+function shortDateLabel(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value || '')
+  return date.toLocaleDateString('es-CO', { month: 'short', day: '2-digit' })
+}
+
+function alertFamily(code = '') {
+  const normalized = String(code).toUpperCase()
+  if (normalized.startsWith('RF-')) return 'Regla fuerte'
+  if (normalized.startsWith('NLP-')) return 'Narrativa NLP'
+  return 'Senal de negocio'
+}
+
 function RiskPill({ level }) {
   const colors = {
     rojo: 'var(--risk-red)',
@@ -34,7 +47,6 @@ export default function Dashboard() {
   const api = useFraudData()
   const [stats, setStats] = useState(null)
   const [claims, setClaims] = useState([])
-  const [providers, setProviders] = useState([])
   const [networks, setNetworks] = useState([])
   const [error, setError] = useState('')
   const nav = useNavigate()
@@ -43,13 +55,11 @@ export default function Dashboard() {
     Promise.all([
       api.getDashboardStats(),
       api.getSiniestros({ limit: 100 }),
-      api.getProveedores(),
       api.getProviderNetworks(5),
     ])
-      .then(([statsData, claimsData, providersData, networksData]) => {
+      .then(([statsData, claimsData, networksData]) => {
         setStats(statsData)
         setClaims(claimsData.items || [])
-        setProviders(providersData || [])
         setNetworks(networksData || [])
       })
       .catch((exc) => setError(exc.message))
@@ -62,7 +72,55 @@ export default function Dashboard() {
     const green = stats?.casos_verdes ?? stats?.casos_verde ?? claims.filter((item) => item.nivel_riesgo === 'verde').length
     const top = [...claims].sort((a, b) => b.score - a.score).slice(0, 5)
     const nlpCases = claims.filter((item) => (item.senales_narrativa || []).length > 0).length
-    return { total, red, yellow, green, top, nlpCases }
+    const redByDate = claims.reduce((acc, item) => {
+      const rawDate = item.fecha_reporte || item.fecha_ocurrencia || 'sin fecha'
+      const key = String(rawDate).slice(0, 10)
+      if (!acc[key]) acc[key] = { count: 0, red: 0, score: 0 }
+      acc[key].count += 1
+      acc[key].score += Number(item.score || 0)
+      if (item.nivel_riesgo === 'rojo') acc[key].red += 1
+      return acc
+    }, {})
+    let redTrend = Object.entries(redByDate)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, values]) => ({
+        label: shortDateLabel(date),
+        date,
+        value: values.red,
+        count: values.count,
+        avgScore: Math.round(values.score / values.count),
+      }))
+    if (redTrend.length <= 1 && claims.length > 1) {
+      redTrend = [...claims]
+        .sort((a, b) => String(a.fecha_reporte || a.fecha_ocurrencia || a.id_siniestro).localeCompare(String(b.fecha_reporte || b.fecha_ocurrencia || b.id_siniestro)))
+        .map((item) => ({
+          label: shortDateLabel(item.fecha_reporte || item.fecha_ocurrencia || item.id_siniestro),
+          date: item.fecha_reporte || item.fecha_ocurrencia || item.id_siniestro,
+          value: item.nivel_riesgo === 'rojo' ? 1 : 0,
+          count: 1,
+          avgScore: Number(item.score || 0),
+        }))
+    }
+    const alertMap = claims.reduce((acc, item) => {
+      ;(item.alertas_detalle || []).forEach((alert) => {
+        const code = alert.codigo || 'ALR'
+        if (!acc[code]) {
+          acc[code] = {
+            label: code,
+            value: 0,
+            points: 0,
+            family: alertFamily(code),
+          }
+        }
+        acc[code].value += 1
+        acc[code].points += Number(alert.puntos || 0)
+      })
+      return acc
+    }, {})
+    const fraudSignals = Object.values(alertMap)
+      .sort((a, b) => b.points - a.points || b.value - a.value)
+      .slice(0, 6)
+    return { total, red, yellow, green, top, nlpCases, redTrend, fraudSignals }
   }, [stats, claims])
 
   if (error) {
@@ -77,8 +135,6 @@ export default function Dashboard() {
 
   if (!stats) return <div>Cargando dashboard...</div>
 
-  const criticalProvider = providers[0]
-  const criticalNetwork = networks[0]
   const redPct = pct(summary.red, summary.total)
   const yellowPct = pct(summary.yellow, summary.total)
   const greenPct = pct(summary.green, summary.total)
@@ -94,7 +150,7 @@ export default function Dashboard() {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => nav('/upload')} style={{ background: '#0f172a', color: '#fff' }}>Cargar CSV/PDF</button>
-          <button onClick={() => nav('/agent')}>Preguntar al agente</button>
+          <button onClick={() => nav('/siniestros')}>Revisar casos</button>
         </div>
       </section>
 
@@ -105,7 +161,7 @@ export default function Dashboard() {
         <StatCard label="Score promedio" value={stats.score_promedio ?? formatCurrency(stats.ahorro_potencial || 0)} accent="var(--risk-green)" hint="Riesgo agregado" />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
         <Panel>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'start' }}>
             <div>
@@ -127,14 +183,28 @@ export default function Dashboard() {
             <RiskSummary label="Rojo" value={summary.red} percent={redPct} color="var(--risk-red)" />
           </div>
         </Panel>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <Panel>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 12 }}>
+            <div>
+              <h3 style={{ margin: 0 }}>Evolucion de casos rojos</h3>
+              <p style={{ color: 'var(--muted)', marginTop: 6 }}>Cantidad de siniestros de prioridad roja por fecha de reporte.</p>
+            </div>
+            <span style={{ color: 'var(--muted)', fontSize: 13 }}>alertas rojas</span>
+          </div>
+          <LineChart data={summary.redTrend} color="var(--risk-red)" label="fechas con riesgo rojo" />
+        </Panel>
 
         <Panel>
-          <h3 style={{ margin: 0 }}>Lectura rapida</h3>
-          <div style={{ display: 'grid', gap: 12, marginTop: 14 }}>
-            <Insight label="Proveedor a revisar" value={criticalProvider?.beneficiario || criticalProvider?.nombre || 'Sin datos'} detail={`${criticalProvider?.alertas_rojas ?? 0} alertas rojas`} />
-            <Insight label="Red mas concentrada" value={criticalNetwork?.beneficiario || 'Sin datos'} detail={`Indice ${criticalNetwork?.indice_concentracion ?? 0}`} />
-            <Insight label="Siguiente paso" value="Revisar casos rojos" detail="Validar documentos, narrativa y proveedor antes de decidir." />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 12 }}>
+            <div>
+              <h3 style={{ margin: 0 }}>Senales que disparan riesgo</h3>
+              <p style={{ color: 'var(--muted)', marginTop: 6 }}>Reglas y NLP que mas aportan puntos al score.</p>
+            </div>
           </div>
+          <HorizontalBarChart data={summary.fraudSignals} />
         </Panel>
       </div>
 
@@ -155,7 +225,7 @@ export default function Dashboard() {
                 >
                   <span>
                     <strong style={{ fontFamily: 'var(--font-mono)' }}>{item.id_siniestro}</strong>
-                    <span style={{ display: 'block', color: 'var(--muted)', marginTop: 2 }}>{item.cobertura} · {item.beneficiario}</span>
+                    <span style={{ display: 'block', color: 'var(--muted)', marginTop: 2 }}>{item.cobertura} - {item.beneficiario}</span>
                   </span>
                   <RiskPill level={item.nivel_riesgo || level.nivel} />
                   <strong style={{ color: level.color }}>{item.score}</strong>
@@ -166,14 +236,15 @@ export default function Dashboard() {
         </Panel>
 
         <Panel>
-          <h3 style={{ margin: 0 }}>Senales IA y red</h3>
+          <h3 style={{ margin: 0 }}>Concentracion sospechosa por proveedor</h3>
+          <p style={{ color: 'var(--muted)', marginTop: 6 }}>Proveedores con mas casos, asegurados/vehiculos relacionados y alertas rojas.</p>
           <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
             {networks.slice(0, 4).map((item) => (
               <div key={item.beneficiario} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
                 <div>
                   <strong>{item.beneficiario}</strong>
                   <div style={{ color: 'var(--muted)', marginTop: 3 }}>
-                    {item.total_casos} casos · {item.asegurados_unicos} asegurados · {item.vehiculos_unicos} vehiculos
+                    {item.total_casos} casos - {item.asegurados_unicos} asegurados - {item.vehiculos_unicos} vehiculos
                   </div>
                 </div>
                 <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>{item.indice_concentracion}</span>
@@ -201,12 +272,69 @@ function RiskSummary({ label, value, percent, color }) {
   )
 }
 
-function Insight({ label, value, detail }) {
+function LineChart({ data, color = '#2563eb', label = 'fechas' }) {
+  const width = 520
+  const height = 190
+  const pad = 18
+  const maxValue = Math.max(1, ...data.map((item) => item.value || 0))
+  const points = data.map((item, index) => {
+    const x = pad + (index * (width - pad * 2)) / Math.max(1, data.length - 1)
+    const y = height - pad - (Math.max(0, item.value || 0) / maxValue) * (height - pad * 2)
+    return { ...item, x, y }
+  })
+  const path = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ')
+
+  if (!points.length) {
+    return <div style={{ color: 'var(--muted)', marginTop: 14 }}>Sin fechas suficientes para calcular tendencia.</div>
+  }
+
   return (
-    <div style={{ borderLeft: '3px solid var(--accent)', paddingLeft: 10 }}>
-      <div style={{ color: 'var(--muted)', fontSize: 12, textTransform: 'uppercase' }}>{label}</div>
-      <strong style={{ display: 'block', marginTop: 3 }}>{value}</strong>
-      <div style={{ color: 'var(--muted)', marginTop: 3 }}>{detail}</div>
+    <div style={{ marginTop: 14, overflow: 'hidden' }}>
+      <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 210, display: 'block' }}>
+        <defs>
+          <linearGradient id="scoreFill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        {[0, 0.25, 0.5, 0.75, 1].map((tick) => {
+          const y = height - pad - tick * (height - pad * 2)
+          return <line key={tick} x1={pad} x2={width - pad} y1={y} y2={y} stroke="#e5e7eb" strokeWidth="1" />
+        })}
+        {points.length > 0 && <path d={`${path} L ${points[points.length - 1].x} ${height - pad} L ${points[0].x} ${height - pad} Z`} fill="url(#scoreFill)" />}
+        <path d={path} fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        {points.map((point) => (
+          <circle key={`${point.label}-${point.x}`} cx={point.x} cy={point.y} r="4" fill="#fff" stroke={color} strokeWidth="2" />
+        ))}
+      </svg>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, color: 'var(--muted)', fontSize: 12 }}>
+        <span>{points[0].label}</span>
+        <span>{points.length} {label} - max {maxValue}</span>
+        <span>{points[points.length - 1].label}</span>
+      </div>
+    </div>
+  )
+}
+
+function HorizontalBarChart({ data }) {
+  const max = Math.max(1, ...data.map((item) => item.value || 0))
+
+  return (
+    <div style={{ display: 'grid', gap: 10, marginTop: 14 }}>
+      {data.length ? data.map((item) => (
+        <div key={item.label} style={{ display: 'grid', gap: 5 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+            <div>
+              <strong style={{ fontFamily: 'var(--font-mono)' }}>{item.label}</strong>
+              <span style={{ color: 'var(--muted)', marginLeft: 8, fontSize: 12 }}>{item.family}</span>
+            </div>
+            <span style={{ color: 'var(--muted)', fontSize: 12 }}>{item.value} casos - {item.points} pts</span>
+          </div>
+          <div style={{ height: 12, background: '#eef2f7', borderRadius: 999, overflow: 'hidden' }}>
+            <div style={{ width: `${Math.max(6, (item.value / max) * 100)}%`, height: '100%', background: item.family === 'Regla fuerte' ? 'var(--risk-red)' : item.family === 'Narrativa NLP' ? '#0ea5e9' : 'var(--risk-yellow)' }} />
+          </div>
+        </div>
+      )) : <div style={{ color: 'var(--muted)' }}>Sin alertas suficientes para graficar.</div>}
     </div>
   )
 }

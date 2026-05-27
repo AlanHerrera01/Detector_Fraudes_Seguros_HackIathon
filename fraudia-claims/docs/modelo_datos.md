@@ -36,3 +36,42 @@ Campos clave:
 - `etiqueta_fraude_simulada`
 
 El dataset incluido es sintetico y no contiene datos personales reales.
+
+## Tablas complementarias sinteticas
+
+Ademas de `siniestros`, se incluyen archivos complementarios en `data/synthetic/`:
+
+- `polizas_sinteticas.csv`: polizas, vigencias, prima, suma asegurada, deducible y canal de venta.
+- `asegurados_sinteticos.csv`: segmento, antiguedad, ciudad, numero de polizas, reclamos recientes, mora y score simulado.
+- `proveedores_sinteticos.csv`: talleres, clinicas o peritos con reclamos asociados, monto promedio y porcentaje de casos observados.
+- `documentos_sinteticos.csv`: documentos por siniestro, entrega, legibilidad, inconsistencias y observaciones.
+
+Estas tablas permiten ampliar el analisis hacia relaciones entre poliza,
+asegurado, proveedor y documentos sin usar informacion personal real.
+
+## Persistencia PostgreSQL opcional
+
+Por defecto la solucion funciona con archivos planos CSV. Si se activa
+`DB_ENABLED=true`, el backend usa PostgreSQL:
+
+- Crea automaticamente la base definida en `DB_NAME` si no existe.
+- Crea automaticamente la tabla `DB_SCHEMA.DB_TABLE`.
+- Crea automaticamente las tablas complementarias sinteticas.
+- Si las tablas estan vacias, carga los CSV sinteticos iniciales.
+- Cuando se sube un CSV por `/claims/upload`, hace upsert por `id_siniestro`.
+
+Variables relevantes:
+
+- `DB_ENABLED`
+- `DB_HOST`
+- `DB_PORT`
+- `DB_NAME`
+- `DB_USER`
+- `DB_PASSWORD`
+- `DB_SCHEMA`
+- `DB_TABLE`
+
+Endpoints de soporte:
+
+- `GET /db/status`
+- `POST /db/init`

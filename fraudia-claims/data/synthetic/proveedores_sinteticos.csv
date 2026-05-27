@@ -1,0 +1,7 @@
+id_proveedor,beneficiario,tipo,ciudad,reclamos_asociados,monto_promedio_reclamado,porcentaje_casos_observados,antiguedad
+PROV-001,Taller Norte,Taller,Quito,2,5400,0.10,5
+PROV-002,Taller Delta,Taller,Quito,3,18300,0.55,2
+PROV-003,Clinica Central,Clinica,Guayaquil,1,3200,0.08,8
+PROV-004,Peritajes Andinos,Perito,Cuenca,2,9700,0.25,4
+PROV-005,Taller Sur,Taller,Ambato,1,2800,0.05,6
+PROV-006,Clinica Pacifico,Clinica,Manta,1,6200,0.12,3

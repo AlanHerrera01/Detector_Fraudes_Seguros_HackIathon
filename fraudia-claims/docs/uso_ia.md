@@ -18,3 +18,12 @@ La solucion usa IA en dos niveles:
    - Usa reglas transparentes para que la demo funcione aun sin credenciales.
 
 Gemini no calcula el score final. El score lo calcula el backend para mantener trazabilidad.
+
+## Metricas de evaluacion
+
+El endpoint `GET /model/metrics` expone:
+
+- Precision, recall, F1-score, matriz de confusion y AUC-ROC cuando existe `etiqueta_fraude_simulada`.
+- Porcentaje de casos marcados y ranking de anomalias por score.
+- Senales NLP mas frecuentes y porcentaje de casos con narrativa relevante.
+- Validacion de reglas: promedio de alertas por caso y casos sin/con alertas.

@@ -7,6 +7,7 @@ import SiniestroDetail from './pages/SiniestroDetail'
 import Providers from './pages/Providers'
 import AIAgent from './pages/AIAgent'
 import UploadEvidence from './pages/UploadEvidence'
+import AIAssistantPanel from './components/ai/AIAssistantPanel'
 import './index.css'
 
 export default function App() {
@@ -14,7 +15,7 @@ export default function App() {
     <BrowserRouter>
       <div style={{display: 'flex', minHeight: '100vh'}}>
         <Sidebar />
-        <div style={{flex: 1, background: 'var(--page-bg)'}}>
+        <div style={{flex: 1, background: 'var(--page-bg)', minWidth: 0}}>
           <TopBar />
           <main style={{padding: 24}}>
             <Routes>
@@ -27,6 +28,7 @@ export default function App() {
             </Routes>
           </main>
         </div>
+        <AIAssistantPanel />
       </div>
     </BrowserRouter>
   )

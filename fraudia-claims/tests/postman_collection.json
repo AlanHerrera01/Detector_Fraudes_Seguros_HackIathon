@@ -1,0 +1,168 @@
+{
+  "info": {
+    "name": "FraudIA Claims API",
+    "description": "Coleccion Postman para probar el backend de FraudIA Claims en local.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "id_siniestro",
+      "value": "SIN-0002"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/health"
+      }
+    },
+    {
+      "name": "Estado PostgreSQL",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/db/status"
+      }
+    },
+    {
+      "name": "Inicializar PostgreSQL",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/db/init"
+      }
+    },
+    {
+      "name": "Resumen del portafolio",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/stats/summary"
+      }
+    },
+    {
+      "name": "Metricas del modelo",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/model/metrics"
+      }
+    },
+    {
+      "name": "Listar siniestros",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/claims?limit=20"
+      }
+    },
+    {
+      "name": "Detalle de siniestro",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/claims/{{id_siniestro}}"
+      }
+    },
+    {
+      "name": "Score de siniestro",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/claims/{{id_siniestro}}/score"
+      }
+    },
+    {
+      "name": "Explicacion ejecutiva",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/claims/{{id_siniestro}}/explanation"
+      }
+    },
+    {
+      "name": "Top alertas",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/alerts/top?limit=10"
+      }
+    },
+    {
+      "name": "Ranking proveedores",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/providers/ranking"
+      }
+    },
+    {
+      "name": "Red de proveedores",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/networks/providers?limit=10"
+      }
+    },
+    {
+      "name": "Reporte auditoria JSON",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/reports/audit?limit=20"
+      }
+    },
+    {
+      "name": "Reporte auditoria CSV",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/reports/audit.csv?limit=20"
+      }
+    },
+    {
+      "name": "Agente IA - Pregunta",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"question\": \"Dame un resumen ejecutivo para comite.\"\n}"
+        },
+        "url": "{{base_url}}/agent/query"
+      }
+    },
+    {
+      "name": "Cargar CSV",
+      "request": {
+        "method": "POST",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": []
+            }
+          ]
+        },
+        "url": "{{base_url}}/claims/upload"
+      }
+    },
+    {
+      "name": "Cargar PDF",
+      "request": {
+        "method": "POST",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": []
+            }
+          ]
+        },
+        "url": "{{base_url}}/claims/upload"
+      }
+    }
+  ]
+}
