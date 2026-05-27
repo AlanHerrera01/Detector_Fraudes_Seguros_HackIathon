@@ -11,7 +11,7 @@ export function formatCurrency(n) {
 export function formatDate(d) {
   try {
     return new Date(d).toLocaleDateString('es-CO')
-  } catch (e) {
+  } catch {
     return d
   }
 }
