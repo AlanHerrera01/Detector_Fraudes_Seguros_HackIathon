@@ -17,6 +17,9 @@ Las reglas implementan senales del documento del reto:
 - `S-07`: Documentos incompletos.
 - `S-08`: Sin tercero identificado.
 - `S-09`: Monto cercano a suma asegurada.
+- `NLP-01`: Narrativa inconsistente o contradictoria.
+- `NLP-02`: Narrativa vaga o con poco detalle verificable.
+- `NLP-03`: Narrativa de alto riesgo combinada con demora o falta de tercero.
 
 Rangos:
 

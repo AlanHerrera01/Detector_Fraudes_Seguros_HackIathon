@@ -1,9 +1,12 @@
 from dataclasses import dataclass
 from typing import Any
+import unicodedata
 
 
 @dataclass(frozen=True)
 class RuleAlert:
+    """Alerta trazable generada por una regla de negocio."""
+
     code: str
     name: str
     points: int
@@ -12,10 +15,18 @@ class RuleAlert:
 
 
 def _is_yes(value: Any) -> bool:
-    return str(value).strip().lower() in {"si", "sí", "true", "1", "yes"}
+    """Normaliza respuestas binarias comunes de CSV."""
+    text = unicodedata.normalize("NFKD", str(value).strip().lower())
+    text = "".join(char for char in text if not unicodedata.combining(char))
+    return text in {"si", "true", "1", "yes"}
 
 
 def evaluate_claim_rules(claim: dict[str, Any]) -> list[RuleAlert]:
+    """Evalua un siniestro contra reglas explicables definidas para el reto.
+
+    Cada regla suma puntos al score final, pero ninguna confirma fraude por si
+    sola; solo genera una alerta para priorizar revision humana.
+    """
     alerts: list[RuleAlert] = []
     cobertura = str(claim.get("cobertura", "")).lower()
     dias_inicio = int(claim.get("dias_desde_inicio_poliza") or 9999)
@@ -40,6 +51,8 @@ def evaluate_claim_rules(claim: dict[str, Any]) -> list[RuleAlert]:
         alerts.append(RuleAlert("RF-04", "Dinamica sospechosa", 6, "rojo", "La dinamica reportada requiere validacion por inconsistencias fisicas o narrativas."))
 
     borde_minimo = min(dias_inicio, dias_fin)
+    # Los siniestros muy cerca del inicio o fin de vigencia son sensibles en
+    # seguros porque pueden indicar antiseleccion, reporte oportunista o error.
     if borde_minimo <= 2:
         alerts.append(RuleAlert("RF-05", "Borde extremo de vigencia", 8, "amarillo", "El siniestro ocurrio dentro de las primeras o ultimas 48 horas de vigencia."))
     elif borde_minimo <= 10:
@@ -79,10 +92,20 @@ def evaluate_claim_rules(claim: dict[str, Any]) -> list[RuleAlert]:
     if suma > 0 and monto / suma >= 0.95:
         alerts.append(RuleAlert("S-09", "Monto cercano a suma asegurada", 5, "amarillo", "El monto reclamado representa 95% o mas de la suma asegurada."))
 
+    if bool(claim.get("narrativa_inconsistente")):
+        alerts.append(RuleAlert("NLP-01", "Narrativa inconsistente", 7, "amarillo", "La descripcion contiene senales de contradiccion o inconsistencia narrativa."))
+
+    if bool(claim.get("narrativa_vaga")):
+        alerts.append(RuleAlert("NLP-02", "Narrativa poco detallada", 4, "amarillo", "La descripcion usa expresiones vagas que dificultan validar la dinamica del evento."))
+
+    if bool(claim.get("narrativa_alto_riesgo")) and (demora_reporte >= 4 or not _is_yes(claim.get("tercero_identificado"))):
+        alerts.append(RuleAlert("NLP-03", "Narrativa de alto riesgo", 5, "amarillo", "La narrativa combina terminos sensibles con reporte tardio o falta de tercero identificado."))
+
     return alerts
 
 
 def risk_level(score: float) -> str:
+    """Convierte el score numerico a semaforo operativo para analistas."""
     if score >= 76:
         return "rojo"
     if score >= 41:

@@ -4,12 +4,18 @@ from src.ai_agent.gemini_service import ask_gemini
 
 
 def answer_question(question: str, scored_claims: pd.DataFrame) -> dict:
+    """Responde preguntas del analista usando solo contexto derivado del dataset."""
     context, sources = build_context(question, scored_claims)
     answer = ask_gemini(question, context)
     return {"answer": answer, "sources": sources}
 
 
 def build_context(question: str, scored_claims: pd.DataFrame) -> tuple[str, list[str]]:
+    """Selecciona el contexto mas relevante antes de llamar al agente IA.
+
+    Este ruteo simple evita enviar todo el dataset a Gemini y mantiene las
+    respuestas trazables a fuentes internas como ranking, top casos o resumen.
+    """
     normalized = question.lower()
 
     if "proveedor" in normalized or "beneficiario" in normalized:

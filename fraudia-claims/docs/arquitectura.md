@@ -7,6 +7,7 @@ Cliente o dashboard
   -> FastAPI
     -> ingestion/load_data.py
     -> features/build_features.py
+    -> features/text_analysis.py
     -> rules/fraud_rules.py
     -> models/fraud_model.py
     -> explainability/explain_score.py
@@ -21,8 +22,9 @@ El backend calcula el score de forma trazable. Gemini se usa para comunicacion e
 1. Se carga un CSV de siniestros.
 2. Se validan columnas minimas.
 3. Se calculan variables de riesgo.
-4. Se aplican reglas de negocio.
-5. Se calcula un complemento de riesgo con IA.
-6. Se genera score de 0 a 100.
-7. Se asigna semaforo: verde, amarillo o rojo.
-8. El agente responde preguntas usando los datos puntuados.
+4. Se extraen senales NLP desde la narrativa del siniestro.
+5. Se aplican reglas de negocio y reglas narrativas.
+6. Se calcula un complemento de riesgo con IA.
+7. Se genera score de 0 a 100.
+8. Se asigna semaforo: verde, amarillo o rojo.
+9. Se exponen explicaciones ejecutivas, redes de proveedores y agente conversacional.

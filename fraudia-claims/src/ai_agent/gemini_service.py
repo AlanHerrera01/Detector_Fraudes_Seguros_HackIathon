@@ -14,6 +14,7 @@ Prioriza explicaciones breves, trazables y utiles para revision humana.
 
 
 def ask_gemini(question: str, context: str) -> str:
+    """Consulta Gemini si hay API key; si no, usa respuesta local reproducible."""
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 
@@ -32,6 +33,7 @@ def ask_gemini(question: str, context: str) -> str:
 
 
 def fallback_answer(question: str, context: str) -> str:
+    """Respuesta de respaldo para que la demo funcione sin credenciales reales."""
     return (
         "Respuesta local sin Gemini configurado. Con base en los datos disponibles: "
         f"{context[:1200]} "

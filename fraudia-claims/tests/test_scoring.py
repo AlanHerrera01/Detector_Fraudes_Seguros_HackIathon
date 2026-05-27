@@ -7,6 +7,7 @@ def test_score_claims_generates_required_columns():
 
     assert "score_riesgo" in df.columns
     assert "nivel_riesgo" in df.columns
+    assert "senales_narrativa" in df.columns
     assert "explicacion" in df.columns
     assert len(df) > 0
     assert df["score_riesgo"].between(0, 100).all()
