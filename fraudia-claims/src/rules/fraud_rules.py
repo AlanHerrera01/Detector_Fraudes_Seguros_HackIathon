@@ -21,6 +21,24 @@ def _is_yes(value: Any) -> bool:
     return text in {"si", "true", "1", "yes"}
 
 
+def _to_int(value: Any, default: int = 0) -> int:
+    try:
+        if value != value:
+            return default
+        return int(value or default)
+    except (TypeError, ValueError):
+        return default
+
+
+def _to_float(value: Any, default: float = 0) -> float:
+    try:
+        if value != value:
+            return default
+        return float(value or default)
+    except (TypeError, ValueError):
+        return default
+
+
 def evaluate_claim_rules(claim: dict[str, Any]) -> list[RuleAlert]:
     """Evalua un siniestro contra reglas explicables definidas para el reto.
 
@@ -29,14 +47,15 @@ def evaluate_claim_rules(claim: dict[str, Any]) -> list[RuleAlert]:
     """
     alerts: list[RuleAlert] = []
     cobertura = str(claim.get("cobertura", "")).lower()
-    dias_inicio = int(claim.get("dias_desde_inicio_poliza") or 9999)
-    dias_fin = int(claim.get("dias_desde_fin_poliza") or 9999)
-    demora_reporte = int(claim.get("dias_entre_ocurrencia_reporte") or 0)
-    historial_asegurado = int(claim.get("historial_siniestros_asegurado") or 0)
-    historial_vehiculo = int(claim.get("historial_siniestros_vehiculo") or 0)
-    casos_proveedor = int(claim.get("casos_observados_proveedor") or 0)
-    monto = float(claim.get("monto_reclamado") or 0)
-    suma = float(claim.get("suma_asegurada") or 0)
+    dias_inicio = _to_int(claim.get("dias_desde_inicio_poliza"), 9999)
+    dias_fin = _to_int(claim.get("dias_desde_fin_poliza"), 9999)
+    demora_reporte = _to_int(claim.get("dias_entre_ocurrencia_reporte"))
+    historial_asegurado = _to_int(claim.get("historial_siniestros_asegurado"))
+    historial_vehiculo = _to_int(claim.get("historial_siniestros_vehiculo"))
+    historial_conductor = _to_int(claim.get("historial_siniestros_conductor"))
+    casos_proveedor = _to_int(claim.get("casos_observados_proveedor"))
+    monto = _to_float(claim.get("monto_reclamado"))
+    suma = _to_float(claim.get("suma_asegurada"))
 
     if "perdida total" in cobertura and "robo" in cobertura:
         alerts.append(RuleAlert("RF-01", "Perdida total por robo", 20, "rojo", "Cobertura de perdida total por robo requiere revision especializada."))
@@ -44,8 +63,16 @@ def evaluate_claim_rules(claim: dict[str, Any]) -> list[RuleAlert]:
     if _is_yes(claim.get("documentos_inconsistentes")):
         alerts.append(RuleAlert("RF-02", "Documentos inconsistentes", 10, "rojo", "Se detectaron inconsistencias o posible alteracion documental."))
 
-    if _is_yes(claim.get("proveedor_en_lista_restrictiva")):
-        alerts.append(RuleAlert("RF-03", "Lista restrictiva", 10, "rojo", "El beneficiario o proveedor coincide con lista restrictiva simulada."))
+    if any(
+        _is_yes(claim.get(column))
+        for column in [
+            "proveedor_en_lista_restrictiva",
+            "asegurado_en_lista_restrictiva",
+            "beneficiario_en_lista_restrictiva",
+            "aps_en_lista_restrictiva",
+        ]
+    ):
+        alerts.append(RuleAlert("RF-03", "Lista restrictiva", 10, "rojo", "El asegurado, beneficiario, proveedor o APS coincide con lista restrictiva simulada."))
 
     if _is_yes(claim.get("dinamica_sospechosa")):
         alerts.append(RuleAlert("RF-04", "Dinamica sospechosa", 6, "rojo", "La dinamica reportada requiere validacion por inconsistencias fisicas o narrativas."))
@@ -61,8 +88,9 @@ def evaluate_claim_rules(claim: dict[str, Any]) -> list[RuleAlert]:
         alerts.append(RuleAlert("S-01", "Borde cercano de vigencia", 4, "amarillo", "El siniestro ocurrio cerca del inicio o fin de vigencia."))
 
     if "robo" in cobertura and demora_reporte > 4:
-        alerts.append(RuleAlert("RF-06", "Demora denuncia de robo", 8, "amarillo", "La denuncia de robo fue reportada despues de 4 dias."))
-    elif demora_reporte > 7:
+        alerts.append(RuleAlert("RF-06", "Demora atipica en denuncia de robo", 8, "amarillo", "La denuncia de robo fue reportada despues de 4 dias."))
+
+    if demora_reporte > 7:
         alerts.append(RuleAlert("S-02", "Reporte tardio", 5, "amarillo", "El siniestro fue reportado mas de 7 dias despues del evento."))
     elif demora_reporte >= 4:
         alerts.append(RuleAlert("S-02", "Reporte tardio", 3, "amarillo", "El siniestro fue reportado entre 4 y 7 dias despues del evento."))
@@ -77,8 +105,15 @@ def evaluate_claim_rules(claim: dict[str, Any]) -> list[RuleAlert]:
     elif historial_vehiculo == 2:
         alerts.append(RuleAlert("S-04", "Frecuencia media vehiculo", 3, "amarillo", "El vehiculo registra 2 siniestros previos."))
 
+    if historial_conductor >= 3:
+        alerts.append(RuleAlert("S-10", "Alta frecuencia conductor", 8, "amarillo", "El conductor registra 3 o mas siniestros previos."))
+    elif historial_conductor == 2:
+        alerts.append(RuleAlert("S-10", "Frecuencia media conductor", 4, "amarillo", "El conductor registra 2 siniestros previos."))
+
     if _is_yes(claim.get("solo_rc")) and historial_asegurado > 2:
         alerts.append(RuleAlert("S-05", "Reclamos solo RC recurrentes", 6, "amarillo", "Existe frecuencia atipica de reclamos de solo responsabilidad civil."))
+    elif _is_yes(claim.get("solo_rc")) and historial_asegurado == 1:
+        alerts.append(RuleAlert("S-05", "Reclamo solo RC previo", 3, "amarillo", "Existe un evento previo de responsabilidad civil."))
 
     if casos_proveedor > 2:
         alerts.append(RuleAlert("S-06", "Proveedor recurrente", 5, "amarillo", "El proveedor aparece asociado a mas de 2 casos observados."))
@@ -101,6 +136,9 @@ def evaluate_claim_rules(claim: dict[str, Any]) -> list[RuleAlert]:
     if bool(claim.get("narrativa_alto_riesgo")) and (demora_reporte >= 4 or not _is_yes(claim.get("tercero_identificado"))):
         alerts.append(RuleAlert("NLP-03", "Narrativa de alto riesgo", 5, "amarillo", "La narrativa combina terminos sensibles con reporte tardio o falta de tercero identificado."))
 
+    if bool(claim.get("narrativa_clonada")):
+        alerts.append(RuleAlert("RF-07", "Narrativa identica clonada", 5, "amarillo", "La narrativa coincide de forma identica con otro siniestro del dataset activo."))
+
     return alerts
 
 
@@ -111,3 +149,14 @@ def risk_level(score: float) -> str:
     if score >= 41:
         return "amarillo"
     return "verde"
+
+
+def risk_classification(score: float) -> str:
+    """Clasificacion ejecutiva de cuatro niveles exigida por el reto."""
+    if score >= 90:
+        return "critico"
+    if score >= 76:
+        return "alto"
+    if score >= 41:
+        return "medio"
+    return "bajo"

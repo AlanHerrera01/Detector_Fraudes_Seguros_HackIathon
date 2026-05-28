@@ -29,6 +29,7 @@ function normalizeClaim(claim = {}) {
     alertas_detalle: alertasDetalle,
     explicacion_ia: claim.explicacion || claim.explicacion_ia || 'Sin explicacion disponible.',
     senales_narrativa: claim.senales_narrativa || [],
+    clasificacion_riesgo: claim.clasificacion_riesgo || (score >= 90 ? 'critico' : score >= 76 ? 'alto' : score >= 41 ? 'medio' : 'bajo'),
   }
 }
 
@@ -109,9 +110,26 @@ export function useFraudData() {
       if (USE_MOCK) return Array.from({ length: limit }).map((_, i) => ({ beneficiario: `Proveedor ${i + 1}`, total_casos: rand(3, 20), asegurados_unicos: rand(2, 15), vehiculos_unicos: rand(2, 12), ciudades_unicas: rand(1, 4), alertas_rojas: rand(0, 5), score_promedio: rand(30, 90), indice_concentracion: rand(5, 30) }))
       return api.getProviderNetworks(limit)
     },
-    queryAgent: async (question) => {
-      if (USE_MOCK) return { answer: `Respuesta simulada para: ${question}` }
-      return api.queryAgent(question)
+    getReportFilters: async () => {
+      if (USE_MOCK) return { uploads: [], providers: ['Proveedor 1', 'Proveedor 2'], date_min: null, date_max: null }
+      return api.getReportFilters()
+    },
+    getAuditReport: async (params = {}) => {
+      const limit = params.limit || 500
+      if (USE_MOCK) return MOCK_SINIESTROS.slice(0, limit).map((claim) => ({
+        id_siniestro: claim.id_siniestro,
+        beneficiario: claim.beneficiario,
+        score_riesgo: claim.score,
+        nivel_riesgo: claim.nivel_riesgo,
+        codigos_alerta: claim.alertas.join(', '),
+        nota_etica: 'Alerta para revision humana; no confirma fraude.',
+      }))
+      return api.getAuditReport(params)
+    },
+    downloadAuditReport: api.downloadAuditReport,
+    queryAgent: async (question, provider = 'gemini', claimId = null) => {
+      if (USE_MOCK) return { answer: `Respuesta simulada para: ${question}`, provider }
+      return api.queryAgent(question, provider, claimId)
     },
     uploadDataset: api.uploadDataset,
   }), [])

@@ -5,6 +5,8 @@ function pageTitle(path){
   if (path.startsWith('/siniestros/') ) return 'Detalle Siniestro'
   if (path === '/siniestros') return 'Siniestros'
   if (path === '/providers') return 'Red de riesgo'
+  if (path === '/rules') return 'Reglas aplicadas'
+  if (path === '/reports') return 'Reportes'
   if (path === '/upload') return 'Cargar archivo'
   if (path === '/agent') return 'Agente IA'
   return ''

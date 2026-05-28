@@ -2,7 +2,7 @@
 
 Backend para el reto **Detector de Posibles Fraudes en Siniestros usando Inteligencia Artificial**.
 
-La solucion genera alertas de revision, no acusaciones automaticas de fraude. Combina reglas de negocio, scoring de riesgo, un modelo de IA sencillo y un agente conversacional con Gemini para explicar resultados.
+La solucion genera alertas de revision, no acusaciones automaticas de fraude. Combina reglas de negocio, scoring de riesgo, un modelo de IA sencillo y un agente conversacional configurable con Gemini, GitHub Models o fallback local para explicar resultados.
 
 ## Stack
 
@@ -11,7 +11,7 @@ La solucion genera alertas de revision, no acusaciones automaticas de fraude. Co
 - FastAPI
 - Pandas
 - Scikit-learn
-- Gemini API
+- Gemini API o GitHub Models
 - Pytest
 
 ## Cumplimiento de requisitos minimos
@@ -38,7 +38,9 @@ pip install -r requirements.txt
 copy .env.example .env
 ```
 
-Configura `GEMINI_API_KEY` en `.env` si quieres usar Gemini. Si no hay API key, el agente usa una respuesta local de respaldo.
+Configura `GEMINI_API_KEY` en `.env` si quieres usar Gemini. Para GitHub Models, configura `GITHUB_MODELS_TOKEN` y deja `GITHUB_MODELS_MODEL=openai/gpt-5` para usar GPT-5 desde GitHub Models. Si no hay credenciales, el agente usa una respuesta local de respaldo.
+
+El proveedor por defecto se define con `AI_PROVIDER=gemini`, pero el frontend tambien permite elegir por consulta entre `gemini`, `github` y `local`.
 
 Para usar PostgreSQL, configura en `.env`:
 
@@ -94,7 +96,8 @@ Ejemplo de consulta al agente:
 
 ```json
 {
-  "question": "Que proveedores concentran mas alertas rojas?"
+  "question": "Que proveedores concentran mas alertas rojas?",
+  "provider": "github"
 }
 ```
 

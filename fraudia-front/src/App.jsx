@@ -5,6 +5,8 @@ import Dashboard from './pages/Dashboard'
 import SiniestrosList from './pages/SiniestrosList'
 import SiniestroDetail from './pages/SiniestroDetail'
 import Providers from './pages/Providers'
+import RulesApplied from './pages/RulesApplied'
+import Reports from './pages/Reports'
 import AIAgent from './pages/AIAgent'
 import UploadEvidence from './pages/UploadEvidence'
 import AIAssistantPanel from './components/ai/AIAssistantPanel'
@@ -23,6 +25,8 @@ export default function App() {
               <Route path="/siniestros" element={<SiniestrosList />} />
               <Route path="/siniestros/:id" element={<SiniestroDetail />} />
               <Route path="/providers" element={<Providers />} />
+              <Route path="/rules" element={<RulesApplied />} />
+              <Route path="/reports" element={<Reports />} />
               <Route path="/upload" element={<UploadEvidence />} />
               <Route path="/agent" element={<AIAgent />} />
             </Routes>

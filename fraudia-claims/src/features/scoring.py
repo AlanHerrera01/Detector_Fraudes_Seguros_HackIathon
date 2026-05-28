@@ -3,7 +3,7 @@ import pandas as pd
 from src.explainability.explain_score import build_explanation
 from src.features.build_features import build_risk_features
 from src.models.fraud_model import model_risk_scores
-from src.rules.fraud_rules import evaluate_claim_rules, risk_level
+from src.rules.fraud_rules import evaluate_claim_rules, risk_classification, risk_level
 
 
 def score_claims(df: pd.DataFrame) -> pd.DataFrame:
@@ -23,6 +23,7 @@ def score_claims(df: pd.DataFrame) -> pd.DataFrame:
             {
                 "score_riesgo": final_score,
                 "nivel_riesgo": level,
+                "clasificacion_riesgo": risk_classification(final_score),
                 "alertas": [alert.__dict__ for alert in alerts],
                 "explicacion": build_explanation(str(claim["id_siniestro"]), final_score, level, alerts),
             }

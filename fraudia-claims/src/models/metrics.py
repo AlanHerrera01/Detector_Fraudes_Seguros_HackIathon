@@ -9,6 +9,9 @@ def model_metrics(scored_claims: pd.DataFrame) -> dict:
         "total_casos": int(len(scored_claims)),
         "porcentaje_casos_marcados": round(float(y_pred.mean() * 100), 2),
         "distribucion_riesgo": scored_claims["nivel_riesgo"].value_counts().to_dict(),
+        "distribucion_clasificacion": scored_claims["clasificacion_riesgo"].value_counts().to_dict()
+        if "clasificacion_riesgo" in scored_claims.columns
+        else {},
         "ranking_anomalias": _top_anomalies(scored_claims),
         "metricas_nlp": _nlp_metrics(scored_claims),
         "validacion_reglas": _rules_validation(scored_claims),

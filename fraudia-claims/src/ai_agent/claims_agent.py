@@ -1,16 +1,16 @@
 import pandas as pd
 
-from src.ai_agent.gemini_service import ask_gemini
+from src.ai_agent.gemini_service import ask_ai_model
 
 
-def answer_question(question: str, scored_claims: pd.DataFrame) -> dict:
+def answer_question(question: str, scored_claims: pd.DataFrame, provider: str | None = None, claim_id: str | None = None) -> dict:
     """Responde preguntas del analista usando solo contexto derivado del dataset."""
-    context, sources = build_context(question, scored_claims)
-    answer = ask_gemini(question, context)
-    return {"answer": answer, "sources": sources}
+    context, sources = build_context(question, scored_claims, claim_id)
+    answer, used_provider = ask_ai_model(question, context, provider)
+    return {"answer": answer, "sources": sources, "provider": used_provider}
 
 
-def build_context(question: str, scored_claims: pd.DataFrame) -> tuple[str, list[str]]:
+def build_context(question: str, scored_claims: pd.DataFrame, claim_id: str | None = None) -> tuple[str, list[str]]:
     """Selecciona el contexto mas relevante antes de llamar al agente IA.
 
     Este ruteo simple evita enviar todo el dataset a Gemini y mantiene las
@@ -18,15 +18,41 @@ def build_context(question: str, scored_claims: pd.DataFrame) -> tuple[str, list
     """
     normalized = question.lower()
 
-    matched_id = _find_claim_id(normalized, scored_claims)
+    matched_id = str(claim_id).lower() if claim_id else _find_claim_id(normalized, scored_claims)
     if matched_id:
-        claim = scored_claims[scored_claims["id_siniestro"].str.lower() == matched_id].iloc[0]
+        match = scored_claims[scored_claims["id_siniestro"].astype(str).str.lower() == matched_id]
+        if match.empty and claim_id:
+            context = (
+                f"El usuario esta viendo el siniestro {claim_id}, pero ese ID no existe en el dataset activo. "
+                "Indicale que actualice la lista o seleccione un caso del archivo activo antes de explicar el color."
+            )
+            return context, ["system", "active_claim_not_found"]
+        if match.empty:
+            matched_id = _find_claim_id(normalized, scored_claims)
+            match = scored_claims[scored_claims["id_siniestro"].astype(str).str.lower() == matched_id] if matched_id else match
+        claim = match.iloc[0] if not match.empty else None
+    else:
+        claim = None
+
+    if claim is not None:
         context = (
             "Ficha compacta del siniestro para que la IA explique causalmente el nivel de riesgo. "
+            "El usuario esta viendo este caso en pantalla, asi que interpreta su pregunta con este siniestro como contexto activo. "
+            "Explica tecnicamente: umbral del semaforo, score total, puntos por reglas, componente ML aproximado, reglas activadas y validacion recomendada. "
             "No copies todo; interpreta los factores clave.\n"
             f"{_build_claim_compact_context(claim)}"
         )
         return context, ["claim_detail", "rules_engine", "narrative_signals", "claims_scores"]
+
+    inferred_claim = _infer_claim_from_risk_question(normalized, scored_claims)
+    if inferred_claim is not None:
+        context = (
+            "Ficha compacta del siniestro inferido por la pregunta sobre color/nivel de riesgo. "
+            "Explica tecnicamente: umbral del semaforo, score total, puntos por reglas, componente ML aproximado, reglas activadas y validacion recomendada. "
+            "Si hubo inferencia, dilo brevemente.\n"
+            f"{_build_claim_compact_context(inferred_claim)}"
+        )
+        return context, ["claim_detail", "rules_engine", "risk_thresholds", "claims_scores"]
 
     if any(term in normalized for term in ["comite", "resumen ejecutivo", "presentar", "decision"]):
         top = scored_claims.sort_values("score_riesgo", ascending=False).head(5)
@@ -177,6 +203,28 @@ def _find_claim_id(question: str, scored_claims: pd.DataFrame) -> str | None:
     for claim_id in ids:
         if claim_id in question:
             return claim_id
+    return None
+
+
+def _infer_claim_from_risk_question(question: str, scored_claims: pd.DataFrame) -> pd.Series | None:
+    if not _is_explanation_question(question) and not any(term in question for term in ["amarillo", "rojo", "verde", "color", "semaforo", "semáforo", "nivel"]):
+        return None
+
+    level = None
+    for candidate in ["rojo", "amarillo", "verde"]:
+        if candidate in question:
+            level = candidate
+            break
+
+    if level:
+        matches = scored_claims[scored_claims["nivel_riesgo"].astype(str).str.lower() == level]
+        if len(matches) >= 1:
+            return matches.sort_values("score_riesgo", ascending=False).iloc[0]
+        return None
+
+    if len(scored_claims) == 1:
+        return scored_claims.iloc[0]
+
     return None
 
 

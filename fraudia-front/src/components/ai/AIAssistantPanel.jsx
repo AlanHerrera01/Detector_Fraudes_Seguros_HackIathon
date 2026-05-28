@@ -1,33 +1,17 @@
 import { useMemo, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import useFraudData from '../../hooks/useFraudData'
 
-const QUICK_PROMPTS = [
-  'Recomienda que casos deberia revisar primero el analista.',
-  'Que proveedores concentran mas alertas rojas?',
-  'Que documentos faltan en los casos criticos?',
-  'Genera un resumen ejecutivo de los casos criticos.',
+const AI_PROVIDERS = [
+  { value: 'gemini', label: 'Gemini' },
+  { value: 'github', label: 'GitHub Models GPT-5' },
+  { value: 'local', label: 'Local' },
 ]
 
 const INITIAL_MESSAGE = {
   from: 'assistant',
-  text: 'Hola, soy tu analista FraudIA. Puedes preguntarme como a un colega: que caso revisar primero, por que un siniestro salio alto, que proveedor preocupa o que resumen llevar al comite.',
+  text: 'Hola. Preguntame sobre siniestros, proveedores, documentos o casos de mayor riesgo.',
   sources: ['rules_engine', 'claims_scores'],
-}
-
-function sourceName(source) {
-  const names = {
-    top_claims: 'Top casos',
-    claims_scores: 'Scores',
-    provider_ranking: 'Proveedores',
-    rules_engine: 'Reglas',
-    document_review: 'Documentos',
-    amount_outliers: 'Montos',
-    portfolio_summary: 'Resumen',
-    ethics_guardrail: 'Etica',
-    claim_detail: 'Caso',
-    narrative_signals: 'NLP',
-  }
-  return names[source] || source
 }
 
 function cleanAssistantText(text) {
@@ -38,14 +22,24 @@ function cleanAssistantText(text) {
     .trim()
 }
 
+function providerName(provider) {
+  return AI_PROVIDERS.find((item) => item.value === provider)?.label || provider || 'IA'
+}
+
 export default function AIAssistantPanel() {
   const api = useFraudData()
+  const location = useLocation()
   const [messages, setMessages] = useState([INITIAL_MESSAGE])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [listening, setListening] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
+  const [aiProvider, setAiProvider] = useState('github')
   const speechSupported = useMemo(() => typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition), [])
+  const activeClaimId = useMemo(() => {
+    const match = location.pathname.match(/^\/siniestros\/([^/]+)/)
+    return match ? decodeURIComponent(match[1]) : null
+  }, [location.pathname])
 
   async function send(text = input) {
     const question = text.trim()
@@ -54,8 +48,19 @@ export default function AIAssistantPanel() {
     setInput('')
     setLoading(true)
     try {
-      const result = await api.queryAgent(question)
-      setMessages((current) => [...current, { from: 'assistant', text: result.answer, sources: result.sources || [] }])
+      const scopedQuestion = activeClaimId ? `[Caso activo ${activeClaimId}] ${question}` : question
+      const result = await api.queryAgent(scopedQuestion, aiProvider, activeClaimId)
+      const answer = cleanAssistantText(result.answer) || 'No recibi una respuesta util del modelo. Intenta de nuevo o cambia de modelo.'
+      setMessages((current) => [
+        ...current,
+        {
+          from: 'assistant',
+          text: answer,
+          sources: result.sources || [],
+          provider: result.provider || aiProvider,
+          requestedProvider: aiProvider,
+        },
+      ])
     } catch (exc) {
       setMessages((current) => [...current, { from: 'assistant', text: `No pude consultar el agente: ${exc.message}`, sources: ['system'] }])
     } finally {
@@ -69,6 +74,7 @@ export default function AIAssistantPanel() {
     const recognition = new Recognition()
     recognition.lang = 'es-CO'
     recognition.interimResults = false
+    recognition.maxAlternatives = 1
     setListening(true)
     recognition.onresult = (event) => {
       setInput(event.results[0][0].transcript)
@@ -101,7 +107,7 @@ export default function AIAssistantPanel() {
           <div style={avatarStyle}>IA</div>
           <div>
             <h3 style={{ margin: 0, color: '#fff' }}>AI Assistant</h3>
-            <p style={{ color: '#a7f3d0', marginTop: 2, fontSize: 12 }}>Analista experto en linea</p>
+            <p style={{ color: '#a7f3d0', marginTop: 2, fontSize: 12 }}>{providerName(aiProvider)}</p>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -110,18 +116,11 @@ export default function AIAssistantPanel() {
         </div>
       </header>
 
-      <section style={toolsStyle}>
-        <div style={toolCardStyle}>
-          <strong>Respuesta trazable</strong>
-          <span>Usa reglas, scores, NLP y PostgreSQL.</span>
-        </div>
-        <div style={toolGridStyle}>
-          {QUICK_PROMPTS.slice(0, 3).map((prompt) => (
-            <button key={prompt} onClick={() => send(prompt)} style={quickStyle}>
-              {prompt.replace('?', '').slice(0, 34)}
-            </button>
-          ))}
-        </div>
+      <section style={chatIntroStyle}>
+        <strong>Asistente IA FraudIA</strong>
+        <span style={chatIntroSubtitleStyle}>
+          {activeClaimId ? `Contexto activo: siniestro ${activeClaimId}` : 'Analisis conversacional de siniestros'}
+        </span>
       </section>
 
       <section style={messagesStyle}>
@@ -132,6 +131,11 @@ export default function AIAssistantPanel() {
       </section>
 
       <footer style={composerStyle}>
+        <select value={aiProvider} onChange={(event) => setAiProvider(event.target.value)} style={providerSelectStyle} aria-label="Modelo IA">
+          {AI_PROVIDERS.map((provider) => (
+            <option key={provider.value} value={provider.value}>{provider.label}</option>
+          ))}
+        </select>
         <textarea
           value={input}
           onChange={(event) => setInput(event.target.value)}
@@ -145,10 +149,16 @@ export default function AIAssistantPanel() {
           rows={3}
           style={textAreaStyle}
         />
-        <div style={{ display: 'grid', gridTemplateColumns: speechSupported ? 'auto 1fr' : '1fr', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: speechSupported ? '44px 1fr' : '1fr', gap: 8 }}>
           {speechSupported && (
-            <button onClick={startVoice} disabled={listening} style={secondaryButtonStyle}>
-              {listening ? 'Escuchando' : 'Dictar'}
+            <button
+              onClick={startVoice}
+              disabled={listening}
+              title={listening ? 'Escuchando' : 'Dictar'}
+              aria-label={listening ? 'Escuchando' : 'Dictar'}
+              style={iconButtonStyle}
+            >
+              <MicIcon />
             </button>
           )}
           <button onClick={() => send()} disabled={!input.trim() || loading} style={sendStyle}>Enviar</button>
@@ -161,20 +171,29 @@ export default function AIAssistantPanel() {
 function Message({ message }) {
   const isUser = message.from === 'user'
   const text = isUser ? message.text : cleanAssistantText(message.text)
+  if (!text) return null
   return (
     <div style={{ alignSelf: isUser ? 'flex-end' : 'flex-start', maxWidth: '92%' }}>
       <div style={isUser ? userBubbleStyle : assistantBubbleStyle}>
-        {!isUser && <div style={assistantLabelStyle}>Analisis FraudIA</div>}
+        {!isUser && (
+          <div style={assistantBubbleHeaderStyle}>
+            <span>Asistente IA FraudIA</span>
+            {message.provider && <small style={assistantBubbleModelStyle}>{providerName(message.provider)}</small>}
+          </div>
+        )}
         <div style={messageTextStyle}>{text}</div>
       </div>
-      {!isUser && message.sources?.length > 0 && (
-        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 5 }}>
-          {message.sources.slice(0, 3).map((source) => (
-            <span key={source} style={sourceStyle}>{sourceName(source)}</span>
-          ))}
-        </div>
-      )}
     </div>
+  )
+}
+
+function MicIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+      <path d="M12 19v3" />
+    </svg>
   )
 }
 
@@ -255,35 +274,27 @@ const resetStyle = {
   border: '1px solid rgba(255,255,255,0.2)',
 }
 
-const toolsStyle = {
-  padding: 12,
-  borderBottom: '1px solid var(--border)',
-  display: 'grid',
-  gap: 10,
-}
-
-const toolCardStyle = {
-  display: 'grid',
-  gap: 4,
-  background: '#f8fafc',
+const providerSelectStyle = {
   border: '1px solid var(--border)',
   borderRadius: 8,
-  padding: 10,
-  color: '#334155',
-  fontSize: 13,
+  padding: '9px 10px',
+  font: 'inherit',
+  color: '#111827',
+  background: '#fff',
 }
 
-const toolGridStyle = {
+const chatIntroStyle = {
+  padding: '12px 14px',
+  borderBottom: '1px solid var(--border)',
   display: 'grid',
-  gridTemplateColumns: '1fr',
-  gap: 6,
+  gap: 2,
+  background: '#fff',
+  color: '#0f172a',
+  fontSize: 14,
 }
 
-const quickStyle = {
-  textAlign: 'left',
-  background: '#ecfeff',
-  color: '#155e75',
-  border: '1px solid #cffafe',
+const chatIntroSubtitleStyle = {
+  color: '#64748b',
   fontSize: 12,
 }
 
@@ -319,8 +330,12 @@ const sendStyle = {
   color: '#fff',
 }
 
-const secondaryButtonStyle = {
+const iconButtonStyle = {
   background: '#eef2f7',
+  color: '#111827',
+  display: 'grid',
+  placeItems: 'center',
+  padding: 0,
 }
 
 const userBubbleStyle = {
@@ -342,12 +357,21 @@ const assistantBubbleStyle = {
   fontSize: 14,
 }
 
-const assistantLabelStyle = {
+const assistantBubbleHeaderStyle = {
+  display: 'grid',
+  gap: 2,
   color: '#0f766e',
   fontSize: 11,
   fontWeight: 800,
   textTransform: 'uppercase',
-  marginBottom: 6,
+  marginBottom: 8,
+}
+
+const assistantBubbleModelStyle = {
+  color: '#64748b',
+  fontSize: 11,
+  fontWeight: 500,
+  textTransform: 'none',
 }
 
 const messageTextStyle = {
@@ -361,12 +385,4 @@ const thinkingStyle = {
   border: '1px solid var(--border)',
   padding: 10,
   borderRadius: 8,
-}
-
-const sourceStyle = {
-  fontSize: 11,
-  color: '#475569',
-  background: '#eef2f7',
-  padding: '3px 6px',
-  borderRadius: 999,
 }

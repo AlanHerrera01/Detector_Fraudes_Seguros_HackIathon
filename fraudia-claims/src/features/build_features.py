@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from src.features.text_analysis import narrative_signals
+from src.features.text_analysis import narrative_signals, normalize_text
 
 
 def build_risk_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -31,5 +31,7 @@ def build_risk_features(df: pd.DataFrame) -> pd.DataFrame:
     features["narrativa_alto_riesgo"] = narrative.apply(lambda item: item["narrativa_alto_riesgo"])
     features["narrativa_inconsistente"] = narrative.apply(lambda item: item["narrativa_inconsistente"])
     features["senales_narrativa"] = narrative.apply(lambda item: item["senales_narrativa"])
+    normalized_narrative = features["descripcion"].apply(normalize_text)
+    features["narrativa_clonada"] = normalized_narrative.ne("") & normalized_narrative.duplicated(keep=False)
 
     return features

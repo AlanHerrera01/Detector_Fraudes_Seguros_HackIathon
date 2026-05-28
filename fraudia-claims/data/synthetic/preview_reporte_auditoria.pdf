@@ -1,0 +1,137 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Length 2401 >>
+stream
+BT
+/F1 10 Tf
+50 790 Td
+14 TL
+(FraudIA - Reporte de auditoria) Tj
+T*
+(Generado: 2026-05-27 20:05) Tj
+T*
+(Alerta para revision humana; no confirma fraude ni decide rechazos automaticamente.) Tj
+T*
+() Tj
+T*
+(Resumen ejecutivo) Tj
+T*
+(- Registros incluidos: 3) Tj
+T*
+(- Score promedio: 90.0) Tj
+T*
+(- Semaforo: 2 rojo | 1 amarillo | 0 verde) Tj
+T*
+(- Casos prioritarios: 3) Tj
+T*
+() Tj
+T*
+(Tipos de alertas mas frecuentes) Tj
+T*
+(- RF-06: 3 caso\(s\) - demora en denuncia por robo) Tj
+T*
+(- S-02: 3 caso\(s\) - reporte tardio) Tj
+T*
+(- S-03: 3 caso\(s\) - frecuencia del asegurado) Tj
+T*
+(- S-06: 3 caso\(s\) - proveedor recurrente) Tj
+T*
+(- S-07: 3 caso\(s\) - documentos incompletos) Tj
+T*
+(- S-08: 3 caso\(s\) - sin tercero identificado) Tj
+T*
+(- S-09: 3 caso\(s\) - monto cercano a suma asegurada) Tj
+T*
+(- NLP-03: 3 caso\(s\) - narrativa de alto riesgo) Tj
+T*
+(- RF-01: 2 caso\(s\) - perdida total por robo) Tj
+T*
+(- RF-02: 2 caso\(s\) - documentos inconsistentes) Tj
+T*
+() Tj
+T*
+(Casos prioritarios) Tj
+T*
+(UPL-0002 | ROJO | score 100 | Taller Horizonte) Tj
+T*
+(Cobertura/ciudad: Perdida Total por Robo - Medellin | Monto: 28500.0) Tj
+T*
+(Alertas: RF-01, RF-02, RF-03, RF-04, S-01, RF-06, S-02, S-03, S-06, S-07, S-08, S-09, NLP-01, NLP-03) Tj
+T*
+(Lectura: El siniestro UPL-0002 tiene score 100/100 y nivel rojo. Requiere revision humana por estas senales: Cobertura de perdida tota) Tj
+T*
+() Tj
+T*
+(UPL-0006 | ROJO | score 100 | Taller Horizonte) Tj
+T*
+(Cobertura/ciudad: Perdida Total por Robo - Cali | Monto: 33000.0) Tj
+T*
+(Alertas: RF-01, RF-02, RF-04, RF-05, RF-06, S-02, S-03, S-04, S-06, S-07, S-08, S-09, NLP-03) Tj
+T*
+(Lectura: El siniestro UPL-0006 tiene score 100/100 y nivel rojo. Requiere revision humana por estas senales: Cobertura de perdida tota) Tj
+T*
+() Tj
+T*
+(UPL-0004 | AMARILLO | score 70 | Taller Horizonte) Tj
+T*
+(Cobertura/ciudad: Robo - Barranquilla | Monto: 16200.0) Tj
+T*
+(Alertas: S-01, RF-06, S-02, S-03, S-04, S-06, S-07, S-08, S-09, NLP-03) Tj
+T*
+(Lectura: El siniestro UPL-0004 tiene score 70/100 y nivel amarillo. Requiere revision humana por estas senales: El siniestro ocurrio c) Tj
+T*
+() Tj
+T*
+(Notas de lectura) Tj
+T*
+(- Rojo: requiere revision especializada y validacion documental prioritaria.) Tj
+T*
+(- Amarillo: requiere revision dirigida antes de cierre operativo.) Tj
+T*
+(- Verde: flujo normal salvo que auditoria solicite validacion adicional.) Tj
+T*
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 4 0 R >>
+endobj
+6 0 obj
+<< /Length 129 >>
+stream
+BT
+/F1 10 Tf
+50 790 Td
+14 TL
+(- Este reporte orienta priorizacion; no confirma fraude ni recomienda rechazo automatico.) Tj
+T*
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 6 0 R >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000191 00000 n 
+0000002644 00000 n 
+0000002770 00000 n 
+0000002950 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+3076
+%%EOF

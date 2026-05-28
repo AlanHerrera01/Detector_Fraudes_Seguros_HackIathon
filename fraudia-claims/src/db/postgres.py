@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from typing import Any
+from datetime import datetime, timezone
 
 import pandas as pd
 from dotenv import load_dotenv
@@ -30,17 +31,27 @@ CLAIM_COLUMNS = [
     "documentos_inconsistentes",
     "beneficiario",
     "proveedor_en_lista_restrictiva",
+    "asegurado_en_lista_restrictiva",
+    "beneficiario_en_lista_restrictiva",
+    "aps_en_lista_restrictiva",
     "dias_desde_inicio_poliza",
     "dias_desde_fin_poliza",
     "dias_entre_ocurrencia_reporte",
     "historial_siniestros_asegurado",
     "historial_siniestros_vehiculo",
+    "historial_siniestros_conductor",
     "casos_observados_proveedor",
     "suma_asegurada",
     "solo_rc",
     "tercero_identificado",
     "dinamica_sospechosa",
     "etiqueta_fraude_simulada",
+]
+
+UPLOAD_METADATA_COLUMNS = [
+    "upload_batch_id",
+    "uploaded_at",
+    "source_filename",
 ]
 
 COMPLEMENTARY_TABLES = {
@@ -217,11 +228,12 @@ def database_status() -> dict[str, Any]:
         }
 
 
-def load_claims_from_db() -> pd.DataFrame:
+def load_claims_from_db(upload_batch_id: str | None = None) -> pd.DataFrame:
     settings = db_settings()
+    where_clause = _batch_where_clause(settings, upload_batch_id)
     with _connect(settings["dbname"]) as conn:
         rows = conn.execute(
-            f'SELECT {", ".join(CLAIM_COLUMNS)} FROM "{settings["schema"]}"."{settings["table"]}" ORDER BY id_siniestro'
+            f'SELECT {", ".join(CLAIM_COLUMNS)} FROM "{settings["schema"]}"."{settings["table"]}" {where_clause} ORDER BY id_siniestro'
         ).fetchall()
 
     df = pd.DataFrame(rows, columns=CLAIM_COLUMNS)
@@ -237,6 +249,7 @@ def load_claims_from_db() -> pd.DataFrame:
         "dias_entre_ocurrencia_reporte",
         "historial_siniestros_asegurado",
         "historial_siniestros_vehiculo",
+        "historial_siniestros_conductor",
         "casos_observados_proveedor",
         "suma_asegurada",
         "etiqueta_fraude_simulada",
@@ -247,18 +260,58 @@ def load_claims_from_db() -> pd.DataFrame:
     return df
 
 
-def upsert_claims(df: pd.DataFrame) -> int:
+def list_upload_batches() -> list[dict[str, Any]]:
+    settings = db_settings()
+    if not _table_has_column(settings, "upload_batch_id"):
+        return []
+
+    with _connect(settings["dbname"]) as conn:
+        rows = conn.execute(
+            f'''
+            SELECT upload_batch_id, source_filename, uploaded_at, COUNT(*) AS total_claims
+            FROM "{settings["schema"]}"."{settings["table"]}"
+            WHERE upload_batch_id IS NOT NULL
+            GROUP BY upload_batch_id, source_filename, uploaded_at
+            ORDER BY uploaded_at DESC NULLS LAST
+            '''
+        ).fetchall()
+
+    return [
+        {
+            "upload_batch_id": row[0],
+            "source_filename": row[1],
+            "uploaded_at": row[2].isoformat() if row[2] else None,
+            "total_claims": int(row[3]),
+        }
+        for row in rows
+    ]
+
+
+def upsert_claims(
+    df: pd.DataFrame,
+    source_filename: str | None = None,
+    upload_batch_id: str | None = None,
+    uploaded_at: datetime | None = None,
+) -> int:
     settings = db_settings()
     normalized = df.copy()
     for column in CLAIM_COLUMNS:
         if column not in normalized.columns:
             normalized[column] = None
-    normalized = normalized[CLAIM_COLUMNS].where(pd.notna(normalized), None)
+    if upload_batch_id is None:
+        upload_batch_id = "seed"
+    if uploaded_at is None:
+        uploaded_at = datetime.now(timezone.utc)
+    normalized["upload_batch_id"] = upload_batch_id
+    normalized["uploaded_at"] = uploaded_at
+    normalized["source_filename"] = source_filename or "seed"
+    insert_columns = CLAIM_COLUMNS + UPLOAD_METADATA_COLUMNS
+    normalized = normalized[insert_columns].where(pd.notna(normalized), None)
     records = [tuple(row) for row in normalized.itertuples(index=False, name=None)]
 
-    placeholders = ", ".join(["%s"] * len(CLAIM_COLUMNS))
-    columns_sql = ", ".join(f'"{column}"' for column in CLAIM_COLUMNS)
-    update_sql = ", ".join(f'"{column}" = EXCLUDED."{column}"' for column in CLAIM_COLUMNS if column != "id_siniestro")
+    placeholders = ", ".join(["%s"] * len(insert_columns))
+    columns_sql = ", ".join(f'"{column}"' for column in insert_columns)
+    update_sql = ", ".join(f'"{column}" = EXCLUDED."{column}"' for column in insert_columns if column != "id_siniestro")
     query = (
         f'INSERT INTO "{settings["schema"]}"."{settings["table"]}" ({columns_sql}) '
         f"VALUES ({placeholders}) "
@@ -325,18 +378,32 @@ def _create_table_if_missing(settings: dict[str, str]) -> None:
         documentos_inconsistentes TEXT,
         beneficiario TEXT,
         proveedor_en_lista_restrictiva TEXT,
+        asegurado_en_lista_restrictiva TEXT,
+        beneficiario_en_lista_restrictiva TEXT,
+        aps_en_lista_restrictiva TEXT,
         dias_desde_inicio_poliza INTEGER,
         dias_desde_fin_poliza INTEGER,
         dias_entre_ocurrencia_reporte INTEGER,
         historial_siniestros_asegurado INTEGER,
         historial_siniestros_vehiculo INTEGER,
+        historial_siniestros_conductor INTEGER,
         casos_observados_proveedor INTEGER,
         suma_asegurada NUMERIC,
         solo_rc TEXT,
         tercero_identificado TEXT,
         dinamica_sospechosa TEXT,
-        etiqueta_fraude_simulada INTEGER
+        etiqueta_fraude_simulada INTEGER,
+        upload_batch_id TEXT,
+        uploaded_at TIMESTAMPTZ,
+        source_filename TEXT
     );
+    ALTER TABLE "{settings["schema"]}"."{settings["table"]}" ADD COLUMN IF NOT EXISTS upload_batch_id TEXT;
+    ALTER TABLE "{settings["schema"]}"."{settings["table"]}" ADD COLUMN IF NOT EXISTS uploaded_at TIMESTAMPTZ;
+    ALTER TABLE "{settings["schema"]}"."{settings["table"]}" ADD COLUMN IF NOT EXISTS source_filename TEXT;
+    ALTER TABLE "{settings["schema"]}"."{settings["table"]}" ADD COLUMN IF NOT EXISTS historial_siniestros_conductor INTEGER;
+    ALTER TABLE "{settings["schema"]}"."{settings["table"]}" ADD COLUMN IF NOT EXISTS asegurado_en_lista_restrictiva TEXT;
+    ALTER TABLE "{settings["schema"]}"."{settings["table"]}" ADD COLUMN IF NOT EXISTS beneficiario_en_lista_restrictiva TEXT;
+    ALTER TABLE "{settings["schema"]}"."{settings["table"]}" ADD COLUMN IF NOT EXISTS aps_en_lista_restrictiva TEXT;
     '''
     with _connect(settings["dbname"]) as conn:
         conn.execute(ddl)
@@ -403,6 +470,46 @@ def _upsert_dataframe(table_name: str, df: pd.DataFrame, columns: list[str], pk:
         conn.commit()
 
     return len(records)
+
+
+def _batch_where_clause(settings: dict[str, str], upload_batch_id: str | None = None) -> str:
+    if not _table_has_column(settings, "upload_batch_id") or not _table_has_column(settings, "uploaded_at"):
+        return ""
+
+    if upload_batch_id:
+        batch_id = upload_batch_id.replace("'", "''")
+        return f"WHERE upload_batch_id = '{batch_id}'"
+
+    with _connect(settings["dbname"]) as conn:
+        latest = conn.execute(
+            f'''
+            SELECT upload_batch_id
+            FROM "{settings["schema"]}"."{settings["table"]}"
+            WHERE upload_batch_id IS NOT NULL
+            ORDER BY uploaded_at DESC NULLS LAST
+            LIMIT 1
+            '''
+        ).fetchone()
+
+    if not latest or not latest[0]:
+        return ""
+    batch_id = str(latest[0]).replace("'", "''")
+    return f"WHERE upload_batch_id = '{batch_id}'"
+
+
+def _table_has_column(settings: dict[str, str], column: str) -> bool:
+    with _connect(settings["dbname"]) as conn:
+        exists = conn.execute(
+            """
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = %s
+              AND table_name = %s
+              AND column_name = %s
+            """,
+            (settings["schema"], settings["table"], column),
+        ).fetchone()
+    return bool(exists)
 
 
 def _psycopg():

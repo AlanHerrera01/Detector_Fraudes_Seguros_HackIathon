@@ -15,13 +15,6 @@ function shortDateLabel(value) {
   return date.toLocaleDateString('es-CO', { month: 'short', day: '2-digit' })
 }
 
-function alertFamily(code = '') {
-  const normalized = String(code).toUpperCase()
-  if (normalized.startsWith('RF-')) return 'Regla fuerte'
-  if (normalized.startsWith('NLP-')) return 'Narrativa NLP'
-  return 'Senal de negocio'
-}
-
 function RiskPill({ level }) {
   const colors = {
     rojo: 'var(--risk-red)',
@@ -70,6 +63,7 @@ export default function Dashboard() {
     const red = stats?.casos_rojos ?? stats?.casos_rojo ?? claims.filter((item) => item.nivel_riesgo === 'rojo').length
     const yellow = stats?.casos_amarillos ?? stats?.casos_amarillo ?? claims.filter((item) => item.nivel_riesgo === 'amarillo').length
     const green = stats?.casos_verdes ?? stats?.casos_verde ?? claims.filter((item) => item.nivel_riesgo === 'verde').length
+    const critical = stats?.casos_criticos ?? claims.filter((item) => item.clasificacion_riesgo === 'critico' || Number(item.score || 0) >= 90).length
     const top = [...claims].sort((a, b) => b.score - a.score).slice(0, 5)
     const nlpCases = claims.filter((item) => (item.senales_narrativa || []).length > 0).length
     const redByDate = claims.reduce((acc, item) => {
@@ -101,26 +95,7 @@ export default function Dashboard() {
           avgScore: Number(item.score || 0),
         }))
     }
-    const alertMap = claims.reduce((acc, item) => {
-      ;(item.alertas_detalle || []).forEach((alert) => {
-        const code = alert.codigo || 'ALR'
-        if (!acc[code]) {
-          acc[code] = {
-            label: code,
-            value: 0,
-            points: 0,
-            family: alertFamily(code),
-          }
-        }
-        acc[code].value += 1
-        acc[code].points += Number(alert.puntos || 0)
-      })
-      return acc
-    }, {})
-    const fraudSignals = Object.values(alertMap)
-      .sort((a, b) => b.points - a.points || b.value - a.value)
-      .slice(0, 6)
-    return { total, red, yellow, green, top, nlpCases, redTrend, fraudSignals }
+    return { total, red, yellow, green, critical, top, nlpCases, redTrend }
   }, [stats, claims])
 
   if (error) {
@@ -156,9 +131,9 @@ export default function Dashboard() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
         <StatCard label="Siniestros analizados" value={summary.total} accent="var(--accent)" hint="Portafolio activo" />
-        <StatCard label="Casos rojos" value={summary.red} accent="var(--risk-red)" hint={`${redPct}% requieren prioridad`} />
-        <StatCard label="Casos con NLP" value={summary.nlpCases} accent="var(--risk-yellow)" hint="Narrativas con senales" />
-        <StatCard label="Score promedio" value={stats.score_promedio ?? formatCurrency(stats.ahorro_potencial || 0)} accent="var(--risk-green)" hint="Riesgo agregado" />
+        <StatCard label="Casos criticos" value={summary.critical} accent="#7f1d1d" hint="Score igual o superior a 90" />
+        <StatCard label="Score promedio" value={stats.score_promedio ?? 0} accent="var(--risk-yellow)" hint="Riesgo agregado" />
+        <StatCard label="Ahorro potencial" value={formatCurrency(stats.ahorro_potencial || 0)} accent="var(--risk-green)" hint="Simulacion conservadora 12%" />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
@@ -185,7 +160,7 @@ export default function Dashboard() {
         </Panel>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
         <Panel>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 12 }}>
             <div>
@@ -195,16 +170,6 @@ export default function Dashboard() {
             <span style={{ color: 'var(--muted)', fontSize: 13 }}>alertas rojas</span>
           </div>
           <LineChart data={summary.redTrend} color="var(--risk-red)" label="fechas con riesgo rojo" />
-        </Panel>
-
-        <Panel>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 12 }}>
-            <div>
-              <h3 style={{ margin: 0 }}>Senales que disparan riesgo</h3>
-              <p style={{ color: 'var(--muted)', marginTop: 6 }}>Reglas y NLP que mas aportan puntos al score.</p>
-            </div>
-          </div>
-          <HorizontalBarChart data={summary.fraudSignals} />
         </Panel>
       </div>
 
@@ -312,29 +277,6 @@ function LineChart({ data, color = '#2563eb', label = 'fechas' }) {
         <span>{points.length} {label} - max {maxValue}</span>
         <span>{points[points.length - 1].label}</span>
       </div>
-    </div>
-  )
-}
-
-function HorizontalBarChart({ data }) {
-  const max = Math.max(1, ...data.map((item) => item.value || 0))
-
-  return (
-    <div style={{ display: 'grid', gap: 10, marginTop: 14 }}>
-      {data.length ? data.map((item) => (
-        <div key={item.label} style={{ display: 'grid', gap: 5 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
-            <div>
-              <strong style={{ fontFamily: 'var(--font-mono)' }}>{item.label}</strong>
-              <span style={{ color: 'var(--muted)', marginLeft: 8, fontSize: 12 }}>{item.family}</span>
-            </div>
-            <span style={{ color: 'var(--muted)', fontSize: 12 }}>{item.value} casos - {item.points} pts</span>
-          </div>
-          <div style={{ height: 12, background: '#eef2f7', borderRadius: 999, overflow: 'hidden' }}>
-            <div style={{ width: `${Math.max(6, (item.value / max) * 100)}%`, height: '100%', background: item.family === 'Regla fuerte' ? 'var(--risk-red)' : item.family === 'Narrativa NLP' ? '#0ea5e9' : 'var(--risk-yellow)' }} />
-          </div>
-        </div>
-      )) : <div style={{ color: 'var(--muted)' }}>Sin alertas suficientes para graficar.</div>}
     </div>
   )
 }

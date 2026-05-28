@@ -30,7 +30,7 @@ export default function SiniestrosList() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead style={{ textAlign: 'left', color: 'var(--muted)' }}>
             <tr>
-              <th>ID</th><th>Ramo</th><th>Cobertura</th><th>Monto</th><th>Fecha</th><th>NLP</th><th>Score</th>
+              <th>ID</th><th>Ramo</th><th>Cobertura</th><th>Monto</th><th>Fecha</th><th>Clasificacion</th><th>Score</th>
             </tr>
           </thead>
           <tbody>
@@ -41,7 +41,7 @@ export default function SiniestrosList() {
                 <td>{s.cobertura}</td>
                 <td style={{ fontFamily: 'var(--font-mono)' }}>{formatCurrency(s.monto_reclamado)}</td>
                 <td>{formatDate(s.fecha_ocurrencia)}</td>
-                <td>{(s.senales_narrativa || []).length}</td>
+                <td>{s.clasificacion_riesgo}</td>
                 <td>{s.score}</td>
               </tr>
             ))}

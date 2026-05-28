@@ -5,6 +5,8 @@ const navItems = [
   { to: '/', label: 'Dashboard', icon: 'D' },
   { to: '/siniestros', label: 'Siniestros', icon: 'S' },
   { to: '/providers', label: 'Red de riesgo', icon: 'R' },
+  { to: '/rules', label: 'Reglas aplicadas', icon: 'P' },
+  { to: '/reports', label: 'Reportes', icon: 'E' },
 ]
 
 const linkStyle = (collapsed) => ({ isActive }) => ({

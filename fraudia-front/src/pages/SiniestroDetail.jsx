@@ -70,6 +70,7 @@ export default function SiniestroDetail() {
           <div><strong>Score:</strong> {item.score}</div>
           <div><strong>Proveedor:</strong> {item.beneficiario}</div>
           <div><strong>Nivel:</strong> {item.nivel_riesgo}</div>
+          <div><strong>Clasificacion:</strong> {item.clasificacion_riesgo}</div>
         </div>
 
         <section style={{ marginTop: 14 }}>

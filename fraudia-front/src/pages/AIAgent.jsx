@@ -29,6 +29,12 @@ const SUGGESTIONS = [
   },
 ]
 
+const AI_PROVIDERS = [
+  { value: 'gemini', label: 'Gemini' },
+  { value: 'github', label: 'GitHub Models GPT-5' },
+  { value: 'local', label: 'Local' },
+]
+
 const INITIAL_MESSAGE = {
   from: 'assistant',
   text: 'Hola, soy el agente experto de FraudIA. Puedo ayudarte a priorizar casos, explicar scores, revisar proveedores, detectar senales narrativas y preparar un resumen para comite. Mis respuestas son alertas para revision humana, no confirmaciones de fraude.',
@@ -51,6 +57,10 @@ function sourceLabel(source) {
   return labels[source] || source
 }
 
+function providerLabel(provider) {
+  return AI_PROVIDERS.find((item) => item.value === provider)?.label || provider || 'IA'
+}
+
 export default function AIAgent() {
   const api = useFraudData()
   const [messages, setMessages] = useState([INITIAL_MESSAGE])
@@ -58,6 +68,7 @@ export default function AIAgent() {
   const [typing, setTyping] = useState(false)
   const [listening, setListening] = useState(false)
   const [activePrompt, setActivePrompt] = useState(SUGGESTIONS[0].prompt)
+  const [aiProvider, setAiProvider] = useState('gemini')
   const speechSupported = useMemo(() => typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition), [])
 
   async function send(text = input) {
@@ -68,8 +79,8 @@ export default function AIAgent() {
     setInput('')
     setTyping(true)
     try {
-      const res = await api.queryAgent(question)
-      setMessages((current) => [...current, { from: 'assistant', text: res.answer, sources: res.sources || [] }])
+      const res = await api.queryAgent(question, aiProvider)
+      setMessages((current) => [...current, { from: 'assistant', text: res.answer, sources: res.sources || [], provider: res.provider || aiProvider }])
     } catch (exc) {
       setMessages((current) => [...current, { from: 'assistant', text: `No pude consultar el agente: ${exc.message}`, sources: ['system'] }])
     } finally {
@@ -118,6 +129,14 @@ export default function AIAgent() {
         <div style={heroPanelStyle}>
           <span style={{ color: '#94a3b8', fontSize: 12, textTransform: 'uppercase' }}>Consulta activa</span>
           <strong style={{ color: '#fff', lineHeight: 1.4 }}>{activePrompt}</strong>
+          <label style={providerFieldStyle}>
+            <span>Modelo IA</span>
+            <select value={aiProvider} onChange={(event) => setAiProvider(event.target.value)} style={providerSelectStyle}>
+              {AI_PROVIDERS.map((provider) => (
+                <option key={provider.value} value={provider.value}>{provider.label}</option>
+              ))}
+            </select>
+          </label>
           <button onClick={() => setMessages([INITIAL_MESSAGE])} style={{ background: '#fff', color: '#0f172a', marginTop: 8 }}>Nueva conversacion</button>
         </div>
       </section>
@@ -196,6 +215,7 @@ function MessageBubble({ message }) {
     <div style={{ alignSelf: isUser ? 'flex-end' : 'flex-start', maxWidth: '84%', display: 'grid', gap: 6 }}>
       <div style={isUser ? userBubbleStyle : assistantBubbleStyle}>
         <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 5 }}>{isUser ? 'Tu pregunta' : 'Agente experto'}</div>
+        {!isUser && message.provider && <div style={{ fontSize: 12, color: '#0f766e', marginBottom: 5 }}>{providerLabel(message.provider)}</div>}
         <div style={{ whiteSpace: 'pre-wrap' }}>{message.text}</div>
       </div>
       {!isUser && message.sources?.length > 0 && (
@@ -262,6 +282,24 @@ const heroPanelStyle = {
   padding: 14,
   display: 'grid',
   gap: 6,
+}
+
+const providerFieldStyle = {
+  display: 'grid',
+  gap: 6,
+  color: '#cbd5e1',
+  fontSize: 12,
+  marginTop: 4,
+}
+
+const providerSelectStyle = {
+  width: '100%',
+  border: '1px solid rgba(255,255,255,0.22)',
+  borderRadius: 8,
+  background: '#fff',
+  color: '#0f172a',
+  padding: '9px 10px',
+  font: 'inherit',
 }
 
 const chatShellStyle = {
