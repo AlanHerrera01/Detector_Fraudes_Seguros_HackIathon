@@ -105,7 +105,7 @@ function RiskBadge({ level }) {
 }
 
 const panelStyle = {
-  background: '#fff',
+  background: 'var(--panel-bg)',
   border: '1px solid var(--border)',
   borderRadius: 8,
   padding: 16,

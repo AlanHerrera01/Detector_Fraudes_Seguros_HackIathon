@@ -26,7 +26,7 @@ export default function UploadEvidence() {
 
   return (
     <div style={{ display: 'grid', gap: 16, maxWidth: 960 }}>
-      <section style={{ background: '#fff', padding: 18, borderRadius: 8, display: 'grid', gap: 12 }}>
+      <section style={{ background: 'var(--panel-bg)', padding: 18, borderRadius: 8, display: 'grid', gap: 12 }}>
         <div>
           <h3 style={{ margin: 0 }}>Ingreso de archivo</h3>
           <p style={{ color: 'var(--muted)', marginTop: 6 }}>
@@ -72,13 +72,13 @@ export default function UploadEvidence() {
       </section>
 
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
-        <div style={{ background: '#fff', padding: 14, borderRadius: 8 }}>
+        <div style={{ background: 'var(--panel-bg)', padding: 14, borderRadius: 8 }}>
           <strong>CSV estructurado</strong>
           <p style={{ color: 'var(--muted)', marginTop: 8 }}>
             Actualiza la base activa de siniestros, recalcula reglas, modelo IA, semaforo y explicaciones.
           </p>
         </div>
-        <div style={{ background: '#fff', padding: 14, borderRadius: 8 }}>
+        <div style={{ background: 'var(--panel-bg)', padding: 14, borderRadius: 8 }}>
           <strong>PDF soporte</strong>
           <p style={{ color: 'var(--muted)', marginTop: 8 }}>
             Extrae texto para detectar narrativa vaga, inconsistente o sensible. No reemplaza el CSV de scoring.

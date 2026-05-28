@@ -106,7 +106,7 @@ export default function AIAssistantPanel() {
           <div style={avatarStyle}>IA</div>
           <div>
             <h3 style={{ margin: 0, color: '#fff' }}>AI Assistant</h3>
-            <p style={{ color: '#a7f3d0', marginTop: 2, fontSize: 12 }}>{providerName(aiProvider)}</p>
+            <p style={{ color: 'var(--accent)', marginTop: 2, fontSize: 12 }}>{providerName(aiProvider)}</p>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -199,7 +199,7 @@ function MicIcon() {
 const panelStyle = {
   width: 380,
   minWidth: 380,
-  background: '#ffffff',
+  background: 'var(--panel-bg)',
   borderLeft: '1px solid var(--border)',
   display: 'flex',
   flexDirection: 'column',
@@ -213,7 +213,7 @@ const panelStyle = {
 const collapsedPanelStyle = {
   width: 64,
   minWidth: 64,
-  background: '#ffffff',
+  background: 'var(--panel-bg)',
   borderLeft: '1px solid var(--border)',
   display: 'flex',
   flexDirection: 'column',
@@ -248,7 +248,7 @@ const collapsedRailTextStyle = {
 }
 
 const headerStyle = {
-  background: 'linear-gradient(135deg, #0f172a 0%, #115e59 100%)',
+  background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0ea5e9 100%)',
   padding: 16,
   display: 'flex',
   justifyContent: 'space-between',
@@ -262,9 +262,10 @@ const avatarStyle = {
   borderRadius: 8,
   display: 'grid',
   placeItems: 'center',
-  background: '#ccfbf1',
-  color: '#0f172a',
+  background: 'var(--accent)',
+  color: '#0a0e27',
   fontWeight: 900,
+  boxShadow: '0 0 12px rgba(96, 165, 250, 0.4)',
 }
 
 const resetStyle = {
@@ -274,12 +275,7 @@ const resetStyle = {
 }
 
 const providerSelectStyle = {
-  border: '1px solid var(--border)',
-  borderRadius: 8,
-  padding: '9px 10px',
-  font: 'inherit',
-  color: '#111827',
-  background: '#fff',
+  // Estilos base vienen de index.css
 }
 
 const chatIntroStyle = {
@@ -287,8 +283,8 @@ const chatIntroStyle = {
   borderBottom: '1px solid var(--border)',
   display: 'grid',
   gap: 2,
-  background: '#fff',
-  color: '#0f172a',
+  background: 'var(--card-bg)',
+  color: 'var(--text)',
   fontSize: 14,
 }
 
@@ -304,7 +300,7 @@ const messagesStyle = {
   display: 'flex',
   flexDirection: 'column',
   gap: 12,
-  background: '#fbfdff',
+  background: 'var(--page-bg)',
 }
 
 const composerStyle = {
@@ -312,16 +308,13 @@ const composerStyle = {
   borderTop: '1px solid var(--border)',
   display: 'grid',
   gap: 8,
-  background: '#fff',
+  background: 'var(--card-bg)',
 }
 
 const textAreaStyle = {
   resize: 'none',
-  border: '1px solid var(--border)',
-  borderRadius: 8,
-  padding: 10,
-  font: 'inherit',
   lineHeight: 1.45,
+  // Otros estilos vienen de index.css
 }
 
 const sendStyle = {
@@ -330,8 +323,8 @@ const sendStyle = {
 }
 
 const iconButtonStyle = {
-  background: '#eef2f7',
-  color: '#111827',
+  background: 'var(--card-bg)',
+  color: 'var(--text)',
   display: 'grid',
   placeItems: 'center',
   padding: 0,
@@ -347,8 +340,8 @@ const userBubbleStyle = {
 }
 
 const assistantBubbleStyle = {
-  background: '#fff',
-  color: '#111827',
+  background: 'var(--panel-bg)',
+  color: 'var(--text)',
   border: '1px solid var(--border)',
   padding: 12,
   borderRadius: 8,
@@ -379,8 +372,8 @@ const messageTextStyle = {
 
 const thinkingStyle = {
   alignSelf: 'flex-start',
-  color: 'var(--muted)',
-  background: '#f8fafc',
+  color: 'var(--text-muted)',
+  background: 'var(--card-bg)',
   border: '1px solid var(--border)',
   padding: 10,
   borderRadius: 8,

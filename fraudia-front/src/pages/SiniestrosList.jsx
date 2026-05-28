@@ -26,7 +26,7 @@ export default function SiniestrosList() {
         </div>
       </div>
 
-      <div style={{ background: '#fff', borderRadius: 8, padding: 12 }}>
+      <div style={{ background: 'var(--panel-bg)', borderRadius: 8, padding: 12 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead style={{ textAlign: 'left', color: 'var(--muted)' }}>
             <tr>
