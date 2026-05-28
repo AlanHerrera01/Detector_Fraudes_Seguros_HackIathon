@@ -2,74 +2,88 @@ import { NavLink } from 'react-router-dom'
 import { useState } from 'react'
 
 const navItems = [
-  { to: '/', label: 'Dashboard', icon: 'D' },
-  { to: '/siniestros', label: 'Siniestros', icon: 'S' },
-  { to: '/providers', label: 'Red de riesgo', icon: 'R' },
-  { to: '/rules', label: 'Reglas aplicadas', icon: 'P' },
-  { to: '/reports', label: 'Reportes', icon: 'E' },
+  { to: '/', label: 'Dashboard', icon: '📊' },
+  { to: '/siniestros', label: 'Siniestros', icon: '🧾' },
+  { to: '/providers', label: 'Red de riesgo', icon: '🕸️' },
+  { to: '/rules', label: 'Reglas aplicadas', icon: '🛡️' },
+  { to: '/reports', label: 'Reportes', icon: '📁' },
 ]
 
 const linkStyle = (collapsed) => ({ isActive }) => ({
   display: 'flex',
   alignItems: 'center',
   justifyContent: collapsed ? 'center' : 'flex-start',
-  gap: collapsed ? 0 : 10,
-  padding: collapsed ? '12px 0' : '12px 14px',
+  gap: collapsed ? 0 : 12,
+  padding: collapsed ? '14px 0' : '12px 14px',
   color: isActive ? '#fff' : '#cbd5e1',
   textDecoration: 'none',
   background: isActive ? '#0f172a' : 'transparent',
   borderLeft: collapsed ? '0' : isActive ? '4px solid var(--accent)' : '4px solid transparent',
-  borderRadius: 8,
-  minHeight: 46,
+  borderRadius: 10,
+  minHeight: 50,
+  transition: 'background 180ms ease, border-color 180ms ease',
 })
 
 export default function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(true)
+  const [hovered, setHovered] = useState(false)
+  const expanded = !collapsed || hovered
 
   return (
-    <aside style={{ width: collapsed ? 76 : 260, minWidth: collapsed ? 76 : 260, background: 'var(--sidebar-bg)', color: '#cbd5e1', padding: collapsed ? 14 : 20, display: 'flex', flexDirection: 'column', gap: 12, transition: 'width 180ms ease, min-width 180ms ease, padding 180ms ease' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+    <aside
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        position: 'sticky',
+        top: 0,
+        height: '100vh',
+        width: expanded ? 260 : 84,
+        minWidth: expanded ? 260 : 84,
+        background: 'var(--sidebar-bg)',
+        color: '#cbd5e1',
+        padding: expanded ? 24 : 18,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 16,
+        transition: 'width 180ms ease, min-width 180ms ease, padding 180ms ease, background 180ms ease',
+        zIndex: 20,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: expanded ? 'space-between' : 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: expanded ? 12 : 0, minWidth: 0 }}>
           <div style={brandMarkStyle}>FI</div>
-          {!collapsed && (
+          {expanded && (
             <div>
               <div style={{ fontWeight: 700, color: '#fff' }}>FraudIA</div>
               <div style={{ fontSize: 12, color: '#94a3b8' }}>Detector de fraudes</div>
             </div>
           )}
         </div>
-        {!collapsed && (
-          <button onClick={() => setCollapsed(true)} title="Reducir menu" style={toggleStyle}>Menu</button>
+        {expanded && (
+          <button onClick={() => setCollapsed(true)} title="Minimizar navegación" style={toggleStyle}>
+            ←
+          </button>
         )}
       </div>
 
-      {collapsed && (
-        <button onClick={() => setCollapsed(false)} title="Expandir menu" style={compactToggleStyle}>{'>'}</button>
-      )}
-
-      <nav style={{ marginTop: collapsed ? 8 : 18, display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <nav style={{ marginTop: expanded ? 10 : 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
         {navItems.map((item) => (
-          <NavLink key={item.to} to={item.to} style={linkStyle(collapsed)} title={collapsed ? item.label : undefined}>
+          <NavLink key={item.to} to={item.to} style={linkStyle(!expanded)} title={expanded ? undefined : item.label}>
             <span style={iconStyle}>{item.icon}</span>
-            {!collapsed && <span>{item.label}</span>}
+            {expanded && <span style={{ whiteSpace: 'nowrap' }}>{item.label}</span>}
           </NavLink>
         ))}
       </nav>
 
       <div style={{ flex: 1 }} />
-      {!collapsed && (
-        <footer style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.4 }}>
-          Sistema de alertas. No reemplaza revision humana.
-        </footer>
-      )}
     </aside>
   )
 }
 
 const brandMarkStyle = {
-  width: 38,
-  height: 38,
-  borderRadius: 8,
+  width: 40,
+  height: 40,
+  borderRadius: 10,
   display: 'grid',
   placeItems: 'center',
   background: '#0f172a',
@@ -79,11 +93,11 @@ const brandMarkStyle = {
 }
 
 const iconStyle = {
-  width: 24,
-  height: 24,
+  width: 30,
+  height: 30,
   display: 'grid',
   placeItems: 'center',
-  fontWeight: 800,
+  fontSize: 16,
 }
 
 const toggleStyle = {
@@ -91,13 +105,15 @@ const toggleStyle = {
   color: '#cbd5e1',
   border: '1px solid rgba(255,255,255,0.12)',
   padding: '8px 10px',
+  borderRadius: 10,
 }
 
 const compactToggleStyle = {
   background: 'rgba(255,255,255,0.08)',
   color: '#cbd5e1',
   border: '1px solid rgba(255,255,255,0.12)',
-  padding: '8px 0',
+  padding: '10px 12px',
   width: '100%',
-  fontSize: 12,
+  borderRadius: 12,
+  fontSize: 16,
 }
