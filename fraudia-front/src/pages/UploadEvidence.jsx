@@ -40,18 +40,18 @@ export default function UploadEvidence() {
         <div>
           <h3 style={{ margin: 0 }}>Ingreso de archivo</h3>
           <p style={{ color: 'var(--muted)', marginTop: 6 }}>
-            Carga CSV para recalcular el portafolio o PDF como soporte documental para analisis narrativo.
+            Carga CSV o Excel para recalcular el portafolio, o PDF como soporte documental para analisis narrativo.
           </p>
         </div>
 
         <div style={{ border: '1px dashed var(--border)', borderRadius: 8, padding: 18, display: 'grid', gap: 10 }}>
           <input
             type="file"
-            accept=".csv,.pdf,text/csv,application/pdf"
+            accept=".csv,.xlsx,.xls,.pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/pdf"
             onChange={(event) => setFile(event.target.files?.[0] || null)}
           />
           <div style={{ color: 'var(--muted)', fontSize: 14 }}>
-            CSV: debe contener columnas de siniestros. PDF: se usa para extraer texto y senales de narrativa.
+            CSV/Excel: debe contener columnas de siniestros. PDF: se usa para extraer texto y senales de narrativa.
           </div>
           <button onClick={upload} disabled={!file || loading} style={{ width: 180, background: '#0f172a', color: '#fff' }}>
             {loading ? 'Analizando...' : 'Cargar archivo'}

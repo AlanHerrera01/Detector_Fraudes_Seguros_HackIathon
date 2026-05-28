@@ -78,7 +78,7 @@ export default function Dashboard() {
     try {
       const [statsData, claimsData, networksData] = await Promise.all([
         api.getDashboardStats(),
-        api.getSiniestros({ limit: 200 }),
+        api.getSiniestros({ limit: 500 }),
         api.getProviderNetworks(8),
       ])
 
@@ -152,8 +152,11 @@ export default function Dashboard() {
     const yellow = stats?.casos_amarillos ?? stats?.casos_amarillo ?? claims.filter((item) => item.nivel_riesgo === 'amarillo').length
     const green = stats?.casos_verdes ?? stats?.casos_verde ?? claims.filter((item) => item.nivel_riesgo === 'verde').length
     const critical = stats?.casos_criticos ?? claims.filter((item) => item.clasificacion_riesgo === 'critico' || Number(item.score || 0) >= 90).length
-    const top = [...claims].sort((a, b) => b.score - a.score).slice(0, 6)
-    const claimsWithAlerts = claims.filter((item) => (item.alertas_detalle || []).length > 0).length
+    const top = [...claims].sort((a, b) => b.score - a.score).slice(0, 25)
+    const claimsWithAlerts = stats?.casos_con_alertas ?? claims.filter((item) => (item.alertas_detalle || []).length > 0).length
+    const uniqueProviders = new Set(claims.map((item) => item.beneficiario || '').filter(Boolean)).size
+    const uniqueCoverages = new Set(claims.map((item) => item.cobertura || '').filter(Boolean)).size
+    const uniqueLines = new Set(claims.map((item) => item.ramo || '').filter(Boolean)).size
 
     const providerMap = claims.reduce((acc, item) => {
       const provider = item.beneficiario || 'Proveedor desconocido'
@@ -235,6 +238,9 @@ export default function Dashboard() {
       critical,
       top,
       claimsWithAlerts,
+      uniqueProviders,
+      uniqueCoverages,
+      uniqueLines,
       topProviders,
       topRiskProviders,
       topProvidersMax: topProviders.reduce((max, item) => Math.max(max, item.total), 0),
@@ -294,10 +300,10 @@ export default function Dashboard() {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14 }}>
-        <StatCard label="Siniestros analizados" value={summary.total} accent="var(--accent)" hint="Total de incidentes en el panel" />
-        <StatCard label="Casos criticos" value={summary.critical} accent="#7f1d1d" hint="Puntos de auditoria inmediata" />
-        <StatCard label="Score promedio" value={(stats.score_promedio ?? 0).toFixed(1)} accent="var(--risk-yellow)" hint="Riesgo agregado promedio" />
-        <StatCard label="Casos con alerta" value={summary.claimsWithAlerts} accent="var(--risk-green)" hint="Siniestros con senales detectadas" />
+        <StatCard label="Siniestros analizados" value={summary.total} accent="var(--accent)" hint="Archivo activo" info="Total de casos cargados para revision." />
+        <StatCard label="Casos criticos" value={summary.critical} accent="#7f1d1d" hint="Auditoria inmediata" info="Casos con score critico o cercano a 90+." />
+        <StatCard label="Score promedio" value={(stats.score_promedio ?? 0).toFixed(1)} accent="var(--risk-yellow)" hint="Riesgo agregado" info="Promedio del score calculado por reglas, NLP y ML." />
+        <StatCard label="Casos con alerta" value={summary.claimsWithAlerts} accent="var(--risk-green)" hint="Senales detectadas" info="Casos con al menos una alerta; no confirma fraude." />
       </div>
 
       <Panel style={{ padding: 18 }}>
@@ -309,61 +315,70 @@ export default function Dashboard() {
               Empieza por los siniestros con score mas alto y luego revisa proveedores con concentracion anormal.
             </p>
           </div>
-          <ActionTile label="Alta prioridad" value={summary.red} color="var(--risk-red)" onClick={() => nav('/siniestros')} />
-          <ActionTile label="Requiere monitoreo" value={summary.yellow} color="var(--risk-yellow)" onClick={() => nav('/siniestros')} />
-          <ActionTile label="Redes a revisar" value={networks.length} color="var(--accent)" onClick={() => nav('/providers')} />
+          <ActionTile label="Alta prioridad" value={summary.red} color="var(--risk-red)" info="Casos rojos: score entre 76 y 100, sugeridos para revision especializada." onClick={() => nav('/siniestros')} />
+          <ActionTile label="Requiere monitoreo" value={summary.yellow} color="var(--risk-yellow)" info="Casos amarillos: score entre 41 y 75, recomendados para revision documental." onClick={() => nav('/siniestros')} />
+          <ActionTile label="Redes a revisar" value={networks.length} color="var(--accent)" info="Concentraciones por proveedor, asegurado o vehiculo que conviene revisar por posible patron." onClick={() => nav('/providers')} />
         </div>
       </Panel>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
-        <Panel>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
-            <div>
-              <h3 style={{ margin: 0 }}>Estado del portafolio</h3>
-              <p style={{ color: 'var(--muted)', marginTop: 6 }}>Distribucion de siniestros por nivel de riesgo.</p>
+      <Panel style={{ padding: 22 }}>
+        <div style={portfolioHeaderStyle}>
+          <div>
+            <h3 style={{ margin: 0 }}>Estado del portafolio</h3>
+            <p style={{ color: 'var(--muted)', marginTop: 6 }}>Distribucion y tendencia diaria de siniestros por nivel de riesgo.</p>
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', color: 'var(--muted)', fontSize: 13 }}>
+            <Badge color="var(--risk-green)" label="Verde" />
+            <Badge color="var(--risk-yellow)" label="Amarillo" />
+            <Badge color="var(--risk-red)" label="Rojo" />
+          </div>
+        </div>
+
+        <div style={portfolioSummaryStyle}>
+          <div>
+            <div style={{ display: 'flex', height: 22, borderRadius: 999, overflow: 'hidden', background: 'var(--border)' }}>
+              <div style={{ width: `${greenPct}%`, background: 'var(--risk-green)' }} />
+              <div style={{ width: `${yellowPct}%`, background: 'var(--risk-yellow)' }} />
+              <div style={{ width: `${redPct}%`, background: 'var(--risk-red)' }} />
             </div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', color: 'var(--muted)', fontSize: 13 }}>
-              <Badge color="var(--risk-green)" label="Verde" />
-              <Badge color="var(--risk-yellow)" label="Amarillo" />
-              <Badge color="var(--risk-red)" label="Rojo" />
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginTop: 12, fontSize: 13, color: 'var(--muted)' }}>
+              <span>{greenPct}% verde</span>
+              <span>{yellowPct}% amarillo</span>
+              <span>{redPct}% rojo</span>
             </div>
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 16 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', height: 20, borderRadius: 999, overflow: 'hidden', background: 'var(--border)' }}>
-                <div style={{ width: `${greenPct}%`, background: 'var(--risk-green)' }} />
-                <div style={{ width: `${yellowPct}%`, background: 'var(--risk-yellow)' }} />
-                <div style={{ width: `${redPct}%`, background: 'var(--risk-red)' }} />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginTop: 12, fontSize: 13, color: 'var(--muted)' }}>
-                <span>{greenPct}% verde</span>
-                <span>{yellowPct}% amarillo</span>
-                <span>{redPct}% rojo</span>
-              </div>
-            </div>
-            <div style={{ minWidth: 120, display: 'grid', gap: 10 }}>
-              <MiniStat label="Verde" value={summary.green} color="var(--risk-green)" />
-              <MiniStat label="Rojo" value={summary.red} color="var(--risk-red)" />
-            </div>
+          <div style={portfolioStatsStyle}>
+            <MiniStat label="Verde" value={summary.green} color="var(--risk-green)" info="Score 0-40: flujo normal con validacion basica." />
+            <MiniStat label="Amarillo" value={summary.yellow} color="var(--risk-yellow)" info="Score 41-75: requiere monitoreo o revision documental." />
+            <MiniStat label="Rojo" value={summary.red} color="var(--risk-red)" info="Score 76-100: revision especializada antes de decidir." />
           </div>
+        </div>
 
-          <div style={{ marginTop: 24 }}>
-            <h4 style={{ margin: 0, fontSize: 15 }}>Tendencia de casos</h4>
-            <p style={{ color: 'var(--muted)', marginTop: 6 }}>Monitoreo diario de alertas por color.</p>
-            <TrendLineChart data={summary.trend} series={[{ key: 'rojo', label: 'Rojo', color: 'var(--risk-red)' }, { key: 'amarillo', label: 'Amarillo', color: 'var(--risk-yellow)' }, { key: 'verde', label: 'Verde', color: 'var(--risk-green)' }]} />
-          </div>
-        </Panel>
+        <div style={{ marginTop: 24 }}>
+          <h4 style={{ margin: 0, fontSize: 15 }}>Tendencia de casos</h4>
+          <p style={{ color: 'var(--muted)', marginTop: 6 }}>Elige los colores que deseas ver en las lineas.</p>
+        </div>
+        <TrendLineChart
+          data={summary.trend}
+          height={420}
+          series={[
+            { key: 'rojo', label: 'Rojo', color: 'var(--risk-red)' },
+            { key: 'amarillo', label: 'Amarillo', color: 'var(--risk-yellow)' },
+            { key: 'verde', label: 'Verde', color: 'var(--risk-green)' },
+          ]}
+        />
+      </Panel>
 
-        <PriorityClaimsPanel claims={summary.top} nav={nav} />
-      </div>
+      <PriorityClaimsPanel claims={summary.top} nav={nav} />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
         <Panel>
           <div style={panelHeaderStyle}>
             <div>
               <h3 style={{ margin: 0, fontSize: 16 }}>Top proveedores</h3>
-              <p style={{ color: 'var(--muted)', marginTop: 4, fontSize: 13 }}>Casos por proveedor.</p>
+              <p style={{ color: 'var(--muted)', marginTop: 4, fontSize: 13 }}>
+                Representa los 5 proveedores con mayor cantidad de siniestros en el archivo activo.
+              </p>
             </div>
             <button onClick={() => nav('/providers')} style={panelButtonStyle}>Ver red</button>
           </div>
@@ -374,7 +389,9 @@ export default function Dashboard() {
           <div style={panelHeaderStyle}>
             <div>
               <h3 style={{ margin: 0, fontSize: 16 }}>Riesgo por proveedor</h3>
-              <p style={{ color: 'var(--muted)', marginTop: 4, fontSize: 13 }}>Score promedio.</p>
+              <p style={{ color: 'var(--muted)', marginTop: 4, fontSize: 13 }}>
+                Representa los 5 proveedores con mayor score promedio de riesgo.
+              </p>
             </div>
             <button onClick={() => nav('/providers')} style={panelButtonStyle}>Ver red</button>
           </div>
@@ -395,7 +412,9 @@ export default function Dashboard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
             <div>
               <h3 style={{ margin: 0 }}>Concentracion por proveedor</h3>
-              <p style={{ color: 'var(--muted)', marginTop: 6 }}>Redes de riesgo con los mayores indicadores.</p>
+              <p style={{ color: 'var(--muted)', marginTop: 6 }}>
+                Representa concentraciones por proveedor: casos, asegurados, vehiculos y alertas rojas.
+              </p>
             </div>
             <button onClick={() => nav('/providers')} style={panelButtonStyle}>Explorar</button>
           </div>
@@ -451,7 +470,7 @@ function UploadModal({ file, setFile, loading, progress, elapsedSeconds, result,
             <span style={modalEyebrowStyle}>Ingreso inteligente</span>
             <h3 style={{ margin: '4px 0 0', fontSize: 22 }}>Cargar archivo al motor FraudIA</h3>
             <p style={{ color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.45 }}>
-              Sube un CSV para recalcular el portafolio o un PDF para revisar narrativa y soporte documental.
+              Sube un CSV o Excel para recalcular el portafolio, o un PDF para revisar narrativa y soporte documental.
             </p>
           </div>
           <button onClick={onClose} disabled={loading} style={closeButtonStyle}>Cerrar</button>
@@ -460,7 +479,7 @@ function UploadModal({ file, setFile, loading, progress, elapsedSeconds, result,
         <label style={dropzoneStyle}>
           <input
             type="file"
-            accept=".csv,.pdf,text/csv,application/pdf"
+            accept=".csv,.xlsx,.xls,.pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/pdf"
             onChange={(event) => setFile(event.target.files?.[0] || null)}
             disabled={loading}
             style={{ display: 'none' }}
@@ -468,7 +487,7 @@ function UploadModal({ file, setFile, loading, progress, elapsedSeconds, result,
           <span style={uploadIconStyle}>+</span>
           <strong>{file ? file.name : 'Selecciona tu archivo'}</strong>
           <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
-            Formatos permitidos: CSV para scoring masivo, PDF para soporte narrativo.
+            Formatos permitidos: CSV/Excel para scoring masivo, PDF para soporte narrativo.
           </span>
         </label>
 
@@ -527,10 +546,13 @@ function UploadModal({ file, setFile, loading, progress, elapsedSeconds, result,
   )
 }
 
-function ActionTile({ label, value, color, onClick }) {
+function ActionTile({ label, value, color, info, onClick }) {
   return (
     <button onClick={onClick} style={{ display: 'grid', gap: 8, alignContent: 'center', minHeight: 112, textAlign: 'left', background: '#111827', border: '1px solid var(--border-light)', borderRadius: 8, padding: 16 }}>
-      <span style={{ color: 'var(--muted)', fontSize: 13, fontWeight: 700 }}>{label}</span>
+      <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, color: 'var(--muted)', fontSize: 13, fontWeight: 700 }}>
+        {label}
+        {info && <InfoMark info={info} />}
+      </span>
       <strong style={{ color, fontSize: 30, lineHeight: 1 }}>{value}</strong>
       <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>Abrir vista</span>
     </button>
@@ -539,18 +561,19 @@ function ActionTile({ label, value, color, onClick }) {
 
 function PriorityClaimsPanel({ claims, nav }) {
   return (
-    <Panel>
+    <Panel style={{ padding: 22 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
         <div>
           <h3 style={{ margin: 0 }}>Casos recientes prioritarios</h3>
-          <p style={{ color: 'var(--muted)', marginTop: 6 }}>Siniestros con mayor puntaje para revision inmediata.</p>
+          <p style={{ color: 'var(--muted)', marginTop: 6 }}>Siniestros con mayor puntaje para revision inmediata. Desplazate para ver mas casos criticos.</p>
         </div>
+        <button onClick={() => nav('/siniestros')} style={panelButtonStyle}>Ver bandeja</button>
       </div>
-      <div style={{ display: 'grid', gap: 10, marginTop: 14 }}>
+      <div style={priorityScrollStyle}>
         {claims.map((item) => {
           const level = levelFromScore(item.score)
           return (
-            <button key={item.id_siniestro} onClick={() => nav(`/siniestros/${item.id_siniestro}`)} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center', background: 'var(--panel-bg)', border: '1px solid var(--border)', padding: 14, borderRadius: 'var(--radius-lg)', textAlign: 'left' }}>
+            <button key={item.id_siniestro} onClick={() => nav(`/siniestros/${item.id_siniestro}`)} style={priorityRowStyle}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700 }}>{item.id_siniestro}</div>
                 <div style={{ color: 'var(--muted)', marginTop: 6, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -570,19 +593,22 @@ function PriorityClaimsPanel({ claims, nav }) {
 }
 
 function QuickSummaryPanel({ networks, summary }) {
+  void networks
   return (
     <Panel>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
         <div>
           <h3 style={{ margin: 0 }}>Resumen rapido</h3>
-          <p style={{ color: 'var(--muted)', marginTop: 6 }}>Principales indicadores del sistema.</p>
+          <p style={{ color: 'var(--muted)', marginTop: 6 }}>
+            Representa conteos directos del archivo activo cargado, no de la muestra visible.
+          </p>
         </div>
       </div>
       <div style={{ display: 'grid', gap: 12, marginTop: 18 }}>
-        <SummaryLine label="Proveedores evaluados" value={networks.length} />
-        <SummaryLine label="Casos con alertas" value={summary.claimsWithAlerts} />
-        <SummaryLine label="Coberturas principales" value={summary.coverageBreakdown.length} />
-        <SummaryLine label="Ramos activos" value={summary.ramoBreakdown.length} />
+        <SummaryLine label="Proveedores del archivo" value={summary.uniqueProviders} info="Total de proveedores unicos presentes en el archivo activo." />
+        <SummaryLine label="Casos con alertas" value={summary.claimsWithAlerts} info="Siniestros del archivo activo con al menos una alerta explicable." />
+        <SummaryLine label="Coberturas del archivo" value={summary.uniqueCoverages} info="Coberturas unicas detectadas en los siniestros cargados." />
+        <SummaryLine label="Ramos del archivo" value={summary.uniqueLines} info="Ramos unicos detectados en el archivo activo." />
       </div>
     </Panel>
   )
@@ -598,7 +624,9 @@ function BusinessMixPanel({ ramoItems, coverageItems, nav }) {
       <div style={panelHeaderStyle}>
         <div>
           <h3 style={{ margin: 0, fontSize: 16 }}>Ramos y coberturas frecuentes</h3>
-          <p style={{ color: 'var(--muted)', marginTop: 4, fontSize: 13 }}>Distribucion del portafolio por tipo de negocio.</p>
+          <p style={{ color: 'var(--muted)', marginTop: 4, fontSize: 13 }}>
+            Representa las categorias mas frecuentes del archivo activo por ramo o cobertura.
+          </p>
         </div>
         <button onClick={() => nav('/siniestros')} style={panelButtonStyle}>Explorar</button>
       </div>
@@ -613,21 +641,35 @@ function BusinessMixPanel({ ramoItems, coverageItems, nav }) {
   )
 }
 
-function MiniStat({ label, value, color }) {
+function MiniStat({ label, value, color, info }) {
   return (
     <div style={{ display: 'grid', gap: 6, padding: 14, background: 'var(--panel-bg)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', boxShadow: '0 0 10px rgba(96, 165, 250, 0.05)' }}>
-      <span style={{ fontSize: 13, color: 'var(--muted)' }}>{label}</span>
+      <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--muted)' }}>
+        {label}
+        {info && <InfoMark info={info} />}
+      </span>
       <strong style={{ color, fontSize: 18 }}>{value}</strong>
     </div>
   )
 }
 
-function SummaryLine({ label, value }) {
+function SummaryLine({ label, value, info }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: 14, borderRadius: 'var(--radius-lg)', background: 'var(--panel-bg)', border: '1px solid var(--border)', boxShadow: '0 0 10px rgba(96, 165, 250, 0.05)' }}>
-      <span style={{ color: 'var(--muted)' }}>{label}</span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--muted)' }}>
+        {label}
+        {info && <InfoMark info={info} />}
+      </span>
       <strong style={{ color: '#10b981' }}>{value}</strong>
     </div>
+  )
+}
+
+function InfoMark({ info }) {
+  return (
+    <span title={info} aria-label={info} style={infoMarkStyle}>
+      ?
+    </span>
   )
 }
 
@@ -645,12 +687,68 @@ const panelButtonStyle = {
   boxShadow: '0 0 8px rgba(96, 165, 250, 0.1)',
 }
 
+const infoMarkStyle = {
+  display: 'inline-grid',
+  placeItems: 'center',
+  width: 18,
+  height: 18,
+  borderRadius: 999,
+  border: '1px solid var(--border-light)',
+  color: 'var(--accent)',
+  fontSize: 11,
+  fontWeight: 900,
+  cursor: 'help',
+  flex: '0 0 auto',
+}
+
 const panelHeaderStyle = {
   display: 'grid',
   gridTemplateColumns: '1fr auto',
   gap: 12,
   alignItems: 'start',
   marginBottom: 8,
+}
+
+const portfolioHeaderStyle = {
+  display: 'grid',
+  gridTemplateColumns: '1fr auto',
+  gap: 12,
+  alignItems: 'start',
+}
+
+const portfolioSummaryStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr) minmax(280px, 420px)',
+  gap: 20,
+  alignItems: 'center',
+  marginTop: 18,
+}
+
+const portfolioStatsStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+  gap: 10,
+}
+
+const priorityScrollStyle = {
+  display: 'grid',
+  gap: 10,
+  marginTop: 16,
+  maxHeight: 420,
+  overflowY: 'auto',
+  paddingRight: 6,
+}
+
+const priorityRowStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr) auto',
+  gap: 12,
+  alignItems: 'center',
+  background: 'var(--panel-bg)',
+  border: '1px solid var(--border)',
+  padding: 14,
+  borderRadius: 'var(--radius-lg)',
+  textAlign: 'left',
 }
 
 const segmentedControlStyle = {
@@ -863,6 +961,35 @@ const primaryButtonStyle = {
   fontWeight: 800,
 }
 
+const trendChartShellStyle = {
+  display: 'grid',
+  gap: 14,
+  marginTop: 14,
+  width: '100%',
+}
+
+const trendControlsStyle = {
+  display: 'flex',
+  gap: 10,
+  flexWrap: 'wrap',
+  alignItems: 'center',
+}
+
+function trendToggleStyle(color, active) {
+  return {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    background: active ? '#111827' : 'rgba(15, 23, 42, 0.42)',
+    color: active ? 'var(--text)' : 'var(--muted)',
+    border: `1px solid ${active ? color : 'var(--border)'}`,
+    borderRadius: 999,
+    padding: '8px 11px',
+    fontWeight: 900,
+    boxShadow: active ? `0 0 0 3px color-mix(in srgb, ${color} 16%, transparent)` : 'none',
+  }
+}
+
 const chartInsightStyle = {
   display: 'grid',
   gridTemplateColumns: 'auto 1fr',
@@ -1011,54 +1138,109 @@ function BreakdownChart({ items, color }) {
   )
 }
 
-function TrendLineChart({ data, series, height = 210 }) {
+function TrendLineChart({ data, series, height = 320 }) {
   const [selectedPoint, setSelectedPoint] = useState(null)
-  const width = 520
-  const pad = 18
-  const maxValue = Math.max(1, ...data.flatMap((item) => series.map((serie) => item[serie.key] || 0)))
-  const points = series.map((serie) => ({
+  const [selectedKeys, setSelectedKeys] = useState(() => new Set(series.map((serie) => serie.key)))
+  const width = 1280
+  const pad = { top: 24, right: 28, bottom: 46, left: 44 }
+  const activeSeries = series.filter((serie) => selectedKeys.has(serie.key))
+  const maxValue = Math.max(1, ...data.flatMap((item) => activeSeries.map((serie) => item[serie.key] || 0)))
+  const plotWidth = width - pad.left - pad.right
+  const plotHeight = height - pad.top - pad.bottom
+  const points = activeSeries.map((serie) => ({
     serie,
     values: data.map((item, index) => {
-      const x = pad + (index * (width - pad * 2)) / Math.max(1, data.length - 1)
-      const y = height - pad - ((item[serie.key] || 0) / maxValue) * (height - pad * 2)
+      const x = pad.left + (index * plotWidth) / Math.max(1, data.length - 1)
+      const y = pad.top + plotHeight - ((item[serie.key] || 0) / maxValue) * plotHeight
       return { ...item, x, y }
     }),
   }))
 
   const svgPath = (values) => values.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ')
-  const fallbackPoint = data.length ? { ...data[data.length - 1], serie: series[0] } : null
+  const fallbackPoint = data.length && activeSeries.length ? { ...data[data.length - 1], serie: activeSeries[0] } : null
   const activePoint = selectedPoint || fallbackPoint
+  const totalBySerie = series.reduce((acc, serie) => {
+    acc[serie.key] = data.reduce((sum, item) => sum + Number(item[serie.key] || 0), 0)
+    return acc
+  }, {})
+
+  const toggleSerie = (key) => {
+    setSelectedPoint(null)
+    setSelectedKeys((current) => {
+      const next = new Set(current)
+      if (next.has(key) && next.size > 1) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   if (!data.length) {
     return <div style={{ color: 'var(--muted)', marginTop: 14 }}>Sin datos de tendencia.</div>
   }
 
   return (
-    <div style={{ marginTop: 14, overflow: 'hidden' }}>
-      <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height, display: 'block' }}>
+    <div style={trendChartShellStyle}>
+      <div style={trendControlsStyle}>
+        {series.map((serie) => {
+          const active = selectedKeys.has(serie.key)
+          return (
+            <button key={serie.key} onClick={() => toggleSerie(serie.key)} style={trendToggleStyle(serie.color, active)}>
+              <span style={{ width: 9, height: 9, borderRadius: 999, background: serie.color }} />
+              <span>{serie.label}</span>
+              <strong>{totalBySerie[serie.key]}</strong>
+            </button>
+          )
+        })}
+      </div>
+
+      <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ width: '100%', height, minHeight: height, display: 'block' }}>
+        <rect x={pad.left} y={pad.top} width={plotWidth} height={plotHeight} rx="10" fill="#0b1229" stroke="var(--border)" />
         {[0, 0.25, 0.5, 0.75, 1].map((tick) => {
-          const y = height - pad - tick * (height - pad * 2)
-          return <line key={tick} x1={pad} x2={width - pad} y1={y} y2={y} stroke="#e5e7eb" strokeWidth="1" />
+          const y = pad.top + plotHeight - tick * plotHeight
+          const label = Math.round(tick * maxValue)
+          return (
+            <g key={tick}>
+              <line x1={pad.left} x2={width - pad.right} y1={y} y2={y} stroke="rgba(148, 163, 184, 0.28)" strokeWidth="1" />
+              <text x={pad.left - 12} y={y + 4} textAnchor="end" fill="#94a3b8" fontSize="12">{label}</text>
+            </g>
+          )
         })}
         {points.map(({ values, serie }) => (
-          <path key={serie.key} d={svgPath(values)} fill="none" stroke={serie.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity={0.95} />
+          <path key={serie.key} d={svgPath(values)} fill="none" stroke={serie.color} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" opacity={0.98} />
         ))}
-        {points.map(({ values, serie }) => (
-          values.map((point, idx) => (
-            <circle
-              key={`${serie.key}-${idx}`}
-              cx={point.x}
-              cy={point.y}
-              r={activePoint?.date === point.date && activePoint?.serie?.key === serie.key ? 6 : 3}
-              fill={serie.color}
-              stroke="#0f172a"
-              strokeWidth="2"
-              onClick={() => setSelectedPoint({ ...point, serie })}
-              onMouseEnter={() => setSelectedPoint({ ...point, serie })}
-              style={{ cursor: 'pointer' }}
+        {data.map((item, index) => {
+          const x = pad.left + (index * plotWidth) / Math.max(1, data.length - 1)
+          return (
+            <rect
+              key={item.date || index}
+              x={x - Math.max(3, plotWidth / Math.max(1, data.length) / 2)}
+              y={pad.top}
+              width={Math.max(6, plotWidth / Math.max(1, data.length))}
+              height={plotHeight}
+              fill="transparent"
+              onMouseEnter={() => {
+                const strongest = points
+                  .map(({ values, serie }) => ({ ...values[index], serie }))
+                  .sort((a, b) => Number(b[b.serie.key] || 0) - Number(a[a.serie.key] || 0))[0]
+                setSelectedPoint(strongest)
+              }}
+              style={{ cursor: 'crosshair' }}
             />
-          ))
-        ))}
+          )
+        })}
+        {activePoint && (
+          <>
+            <line x1={activePoint.x} x2={activePoint.x} y1={pad.top} y2={pad.top + plotHeight} stroke="rgba(203, 213, 225, 0.48)" strokeDasharray="4 4" />
+            {points.map(({ values, serie }) => {
+              const point = values.find((value) => value.date === activePoint.date)
+              if (!point) return null
+              return <circle key={serie.key} cx={point.x} cy={point.y} r={5.5} fill={serie.color} stroke="#020617" strokeWidth="2" />
+            })}
+          </>
+        )}
+        <text x={pad.left} y={height - 12} fill="#94a3b8" fontSize="12">{data[0]?.label || ''}</text>
+        <text x={width / 2} y={height - 12} fill="#94a3b8" fontSize="12" textAnchor="middle">{data.length} dias reportados</text>
+        <text x={width - pad.right} y={height - 12} fill="#94a3b8" fontSize="12" textAnchor="end">{data[data.length - 1]?.label || ''}</text>
       </svg>
       {activePoint && (
         <div style={chartInsightStyle}>
@@ -1071,16 +1253,6 @@ function TrendLineChart({ data, series, height = 210 }) {
           </div>
         </div>
       )}
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, color: 'var(--muted)', fontSize: 12, marginTop: 10 }}>
-        <span>{data[0]?.label || ''}</span>
-        <span>{data.length} dias</span>
-        <span>{data[data.length - 1]?.label || ''}</span>
-      </div>
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 10 }}>
-        {series.map((serie) => (
-          <Badge key={serie.key} label={serie.label} color={serie.color} />
-        ))}
-      </div>
     </div>
   )
 }

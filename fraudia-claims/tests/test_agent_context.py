@@ -118,6 +118,21 @@ def test_structured_fallback_repairs_incomplete_ranking_answer():
     assert "fraude confirmado" in repaired
 
 
+def test_top_claims_answer_must_list_multiple_claims():
+    df = _scored_claims()
+    context, _ = build_context("Cuales son los 10 siniestros con mayor riesgo de posible fraude?", df)
+    incomplete = (
+        "Yo empezaria por SIN-0001: tiene score alto y varias alertas clave. "
+        "Como analista, recomiendo validar documentos y narrativa."
+    )
+
+    assert _structured_answer_incomplete(incomplete, context)
+    repaired = _fallback_structured_answer(context)
+    assert "1." in repaired
+    assert "5." in repaired
+    assert "priorizacion humana" in repaired
+
+
 def test_reference_answers_fit_intermediate_output_budget():
     df = _scored_claims()
     questions = [

@@ -14,16 +14,27 @@ export default function SiniestrosList() {
   const [list, setList] = useState([])
   const [search, setSearch] = useState('')
   const [riesgo, setRiesgo] = useState('todos')
+  const [pageSize, setPageSize] = useState(25)
+  const [page, setPage] = useState(1)
   const nav = useNavigate()
 
   useEffect(() => {
-    api.getSiniestros({ search, riesgo: 'todos', limit: 100 }).then((r) => setList(r.items))
+    api.getSiniestros({ search, riesgo: 'todos', limit: 500 }).then((r) => setList(r.items))
   }, [api, search])
+
+  useEffect(() => {
+    setPage(1)
+  }, [search, riesgo, pageSize])
 
   const visibleList = useMemo(() => {
     if (riesgo === 'todos') return list
     return list.filter((item) => item.nivel_riesgo === riesgo)
   }, [list, riesgo])
+
+  const totalPages = Math.max(1, Math.ceil(visibleList.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const pageStart = (currentPage - 1) * pageSize
+  const pageRows = visibleList.slice(pageStart, pageStart + pageSize)
 
   const summary = useMemo(() => {
     const red = list.filter((item) => item.nivel_riesgo === 'rojo').length
@@ -82,6 +93,14 @@ export default function SiniestrosList() {
             </button>
           ))}
         </div>
+        <div style={pageSizeGroupStyle}>
+          <span style={pageSizeLabelStyle}>Ver</span>
+          <select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))} style={pageSizeSelectStyle}>
+            {[10, 25, 50, 100].map((size) => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </select>
+        </div>
       </section>
 
       <section style={tableCardStyle}>
@@ -95,7 +114,7 @@ export default function SiniestrosList() {
         </div>
 
         <div style={rowsStyle}>
-          {visibleList.map((s) => (
+          {pageRows.map((s) => (
             <button key={s.id_siniestro} style={rowStyle} onClick={() => nav(`/siniestros/${s.id_siniestro}`)}>
               <span style={idCellStyle}>
                 <strong>{s.id_siniestro}</strong>
@@ -118,6 +137,23 @@ export default function SiniestrosList() {
           ))}
           {!visibleList.length && <div style={emptyStyle}>No hay siniestros para el filtro seleccionado.</div>}
         </div>
+
+        {visibleList.length > 0 && (
+          <div style={paginationStyle}>
+            <span>
+              Mostrando {pageStart + 1}-{Math.min(pageStart + pageSize, visibleList.length)} de {visibleList.length}
+            </span>
+            <div style={paginationButtonsStyle}>
+              <button onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={currentPage <= 1}>
+                Anterior
+              </button>
+              <strong>{currentPage} / {totalPages}</strong>
+              <button onClick={() => setPage((value) => Math.min(totalPages, value + 1))} disabled={currentPage >= totalPages}>
+                Siguiente
+              </button>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   )
@@ -229,6 +265,28 @@ const filterGroupStyle = {
   display: 'flex',
   gap: 8,
   flexWrap: 'wrap',
+}
+
+const pageSizeGroupStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
+  color: 'var(--text-secondary)',
+  fontSize: 13,
+  fontWeight: 800,
+}
+
+const pageSizeLabelStyle = {
+  color: 'var(--muted)',
+}
+
+const pageSizeSelectStyle = {
+  minWidth: 84,
+  background: '#111827',
+  color: 'var(--text)',
+  border: '1px solid var(--border-light)',
+  borderRadius: 8,
+  padding: '8px 10px',
 }
 
 function filterButtonStyle(value, active) {
@@ -351,4 +409,20 @@ const emptyStyle = {
   border: '1px dashed var(--border-light)',
   borderRadius: 8,
   padding: 14,
+}
+
+const paginationStyle = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: 12,
+  marginTop: 12,
+  color: 'var(--text-secondary)',
+  fontSize: 13,
+}
+
+const paginationButtonsStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 10,
 }

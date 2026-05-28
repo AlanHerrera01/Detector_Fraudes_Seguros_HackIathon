@@ -11,7 +11,8 @@ SYSTEM_INSTRUCTION = """
 Eres FraudIA, analista de siniestros. Responde amable, claro y util.
 Usa solo el contexto entregado; no inventes datos ni confirmes fraude.
 Explica como a un analista: fluido, intuitivo y con criterio tecnico.
-Usa 5-7 frases breves, entre 130 y 180 palabras: lectura, evidencia y recomendacion.
+Usa 6-10 frases breves, entre 160 y 260 palabras cuando la pregunta pida explicacion.
+Si la pregunta pide un top, ranking o lista, respeta la cantidad solicitada y prioriza claridad sobre brevedad.
 Incluye una frase tipo: Como analista, te recomiendo...
 Si hay semaforo: verde 0-40, amarillo 41-75, rojo 76-100.
 No uses Markdown complejo ni etiquetas rigidas.
@@ -23,8 +24,8 @@ def ask_gemini(question: str, context: str) -> str:
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
     timeout_seconds = int(os.getenv("GEMINI_TIMEOUT_SECONDS", "8"))
-    max_context_chars = int(os.getenv("GEMINI_MAX_CONTEXT_CHARS", "3500"))
-    max_output_tokens = int(os.getenv("GEMINI_MAX_OUTPUT_TOKENS", "420"))
+    max_context_chars = int(os.getenv("GEMINI_MAX_CONTEXT_CHARS", "6000"))
+    max_output_tokens = int(os.getenv("GEMINI_MAX_OUTPUT_TOKENS", "700"))
     verify_ssl = os.getenv("GEMINI_VERIFY_SSL", "true").strip().lower() not in {"0", "false", "no"}
 
     if not api_key or api_key == "your_gemini_api_key_here":
@@ -99,8 +100,8 @@ def ask_local_qwen(question: str, context: str) -> tuple[str, str]:
     timeout_seconds = int(os.getenv("LOCAL_LLM_TIMEOUT_SECONDS", "45"))
     auto_pull = os.getenv("LOCAL_LLM_AUTO_PULL", "false").strip().lower() in {"1", "true", "yes"}
     pull_timeout_seconds = int(os.getenv("LOCAL_LLM_PULL_TIMEOUT_SECONDS", "900"))
-    max_context_chars = int(os.getenv("LOCAL_LLM_MAX_CONTEXT_CHARS", "2500"))
-    max_output_tokens = int(os.getenv("LOCAL_LLM_MAX_OUTPUT_TOKENS", "320"))
+    max_context_chars = int(os.getenv("LOCAL_LLM_MAX_CONTEXT_CHARS", "4000"))
+    max_output_tokens = int(os.getenv("LOCAL_LLM_MAX_OUTPUT_TOKENS", "600"))
 
     try:
         import requests
@@ -428,6 +429,12 @@ def _structured_answer_incomplete(answer: str, context: str) -> bool:
     if "ficha compacta del siniestro" in context.lower():
         return False
     clean = answer.strip()
+    goal = _context_goal(context)
+    if goal in {"top_riesgo", "priorizar_revision"}:
+        rows = _context_rows(context)
+        expected_ids = [row.get("id_siniestro", "") for row in rows if row.get("id_siniestro")]
+        mentioned = sum(1 for claim_id in expected_ids if claim_id and claim_id in clean)
+        return mentioned < min(5, len(expected_ids))
     if len(clean) < 180:
         return True
     lowered = clean.lower()
@@ -485,7 +492,7 @@ def _context_rows(context: str) -> list[dict[str, str]]:
         return []
     headers = [part.strip() for part in lines[0].split("|")]
     rows = []
-    for line in lines[1:4]:
+    for line in lines[1:11]:
         values = [part.strip() for part in line.split("|")]
         rows.append(dict(zip(headers, values)))
     return rows
@@ -513,13 +520,24 @@ def _fallback_ranking_answer(goal: str, rows: list[dict[str, str]]) -> str:
 
 
 def _fallback_top_claims_answer(rows: list[dict[str, str]]) -> str:
-    top = rows[0] if rows else {}
-    return (
-        f"Yo empezaria por {top.get('id_siniestro', 'N/D')}: tiene score {top.get('score_riesgo', 'N/D')}, nivel {top.get('nivel_riesgo', 'N/D')} y varias alertas clave ({top.get('alertas_clave', 'N/D')}). "
-        f"Esta asociado a {top.get('beneficiario', 'N/D')} en {top.get('ciudad', 'N/D')}, con cobertura {top.get('cobertura', 'N/D')}. "
-        "La prioridad no viene de una sola senal, sino de la combinacion entre score alto, nivel de riesgo y reglas activadas. "
-        "Como analista, te recomiendo revisarlo primero y validar soportes, narrativa, fechas y documentos antes de decidir."
+    if not rows:
+        return (
+            "No encontre filas suficientes para armar el top de siniestros. "
+            "Como analista, valida que el dataset tenga score, nivel de riesgo y alertas calculadas."
+        )
+
+    lines = ["Top 10 siniestros con mayor riesgo segun score:"]
+    for index, row in enumerate(rows[:10], start=1):
+        alerts = str(row.get("alertas_clave", "N/D"))
+        lines.append(
+            f"{index}. {row.get('id_siniestro', 'N/D')}: score {row.get('score_riesgo', 'N/D')}/100, "
+            f"{row.get('nivel_riesgo', 'N/D')}, alertas {alerts[:45]}."
+        )
+    lines.append(
+        "Recomendacion: revisar en ese orden soportes, narrativa, fechas, documentos y proveedor. "
+        "Es priorizacion humana, no fraude confirmado."
     )
+    return "\n".join(lines)
 
 
 def _fallback_document_answer(rows: list[dict[str, str]]) -> str:

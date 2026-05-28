@@ -6,10 +6,11 @@ from src.models.fraud_model import model_risk_scores
 from src.rules.fraud_rules import evaluate_claim_rules, risk_classification, risk_level
 
 
-def score_claims(df: pd.DataFrame) -> pd.DataFrame:
-    """Ejecuta el pipeline completo: features, reglas, IA y explicacion."""
+def score_claims(df: pd.DataFrame, training_df: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Ejecuta el pipeline completo sobre df, entrenando ML con training_df si existe."""
     scored = build_risk_features(df)
-    model_scores = model_risk_scores(scored)
+    training_features = build_risk_features(training_df) if training_df is not None else None
+    model_scores = model_risk_scores(scored, training_features)
 
     rows = []
     for idx, claim in scored.iterrows():

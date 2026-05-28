@@ -14,12 +14,14 @@ from src.explainability.explain_score import build_executive_explanation
 from src.features.scoring import score_claims
 from src.features.text_analysis import narrative_signals
 from src.ingestion.load_data import DEFAULT_DATA_PATH, load_claims
+from src.ingestion.local_history import append_local_upload, load_active_claims_from_csv, load_claims_history_from_csv
 from src.models.metrics import model_metrics
 from src.db.postgres import (
     database_status,
     db_enabled,
     initialize_database,
     list_upload_batches,
+    load_claims_history_from_db,
     load_claims_from_db,
     upsert_claims,
 )
@@ -84,8 +86,13 @@ def get_scored_claims() -> pd.DataFrame:
     """Obtiene datos puntuados y los cachea para que la demo responda rapido."""
     global _CLAIMS_CACHE
     if _CLAIMS_CACHE is None:
-        source = load_claims_from_db() if _DB_READY else load_claims(DEFAULT_DATA_PATH)
-        _CLAIMS_CACHE = score_claims(source)
+        if _DB_READY:
+            active_source = load_claims_from_db()
+            training_source = load_claims_history_from_db()
+        else:
+            active_source = load_active_claims_from_csv()
+            training_source = load_claims_history_from_csv()
+        _CLAIMS_CACHE = score_claims(active_source, training_source)
     return _CLAIMS_CACHE.copy()
 
 
@@ -125,16 +132,17 @@ def db_init() -> dict:
 
 @app.post("/claims/upload")
 async def upload_claims(file: UploadFile = File(...)) -> dict:
-    """Permite cargar CSV estructurado o PDF como soporte narrativo.
+    """Permite cargar CSV/Excel estructurado o PDF como soporte narrativo.
 
-    El CSV recalcula scores masivos. El PDF se analiza como documento de apoyo:
-    extrae texto y devuelve senales narrativas sin reemplazar el dataset tabular.
+    El CSV/Excel recalcula scores masivos. El PDF se analiza como documento de
+    apoyo: extrae texto y devuelve senales narrativas sin reemplazar el dataset
+    tabular.
     """
     global _CLAIMS_CACHE
     filename = file.filename or ""
     extension = Path(filename).suffix.lower()
-    if extension not in {".csv", ".pdf"}:
-        raise HTTPException(status_code=400, detail="Solo se aceptan archivos CSV o PDF.")
+    if extension not in {".csv", ".xlsx", ".xls", ".pdf"}:
+        raise HTTPException(status_code=400, detail="Solo se aceptan archivos CSV, Excel o PDF.")
 
     content = await file.read()
     if not content:
@@ -144,14 +152,14 @@ async def upload_claims(file: UploadFile = File(...)) -> dict:
         text = _extract_pdf_text(content)
         signals = narrative_signals(text)
         return {
-            "message": "PDF analizado como soporte documental. Para recalcular scores masivos carga un CSV.",
+            "message": "PDF analizado como soporte documental. Para recalcular scores masivos carga un CSV o Excel.",
             "document_type": "pdf",
             "filename": filename,
             "text_preview": text[:800],
             "signals": signals,
         }
 
-    with NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
+    with NamedTemporaryFile(delete=False, suffix=extension) as tmp:
         tmp.write(content)
         tmp_path = Path(tmp.name)
 
@@ -161,22 +169,33 @@ async def upload_claims(file: UploadFile = File(...)) -> dict:
             uploaded_at = datetime.now(timezone.utc)
             batch_id = f"{uploaded_at.strftime('%Y%m%d%H%M%S')}_{Path(filename).stem or 'upload'}"
             upsert_claims(uploaded, source_filename=filename, upload_batch_id=batch_id, uploaded_at=uploaded_at)
-        _CLAIMS_CACHE = score_claims(uploaded)
+            training_source = load_claims_history_from_db()
+        else:
+            uploaded_at = datetime.now(timezone.utc)
+            append_local_upload(uploaded)
+            training_source = load_claims_history_from_csv()
+        _CLAIMS_CACHE = score_claims(uploaded, training_source)
     except (ValueError, FileNotFoundError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     finally:
-        tmp_path.unlink(missing_ok=True)
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except PermissionError:
+            pass
 
     storage = "postgresql" if _DB_READY else "memory"
     return {
         "message": "Dataset cargado y puntuado correctamente.",
         "storage": storage,
+        "uploaded_claims": int(len(uploaded)),
+        "visible_claims": int(len(_CLAIMS_CACHE)),
+        "training_claims": int(len(training_source)),
         "total_claims": int(len(_CLAIMS_CACHE)),
         "source_filename": filename,
         "uploaded_at": uploaded_at.isoformat() if _DB_READY else None,
-        "active_dataset": "ultimo_csv_subido" if _DB_READY else "memoria",
+        "active_dataset": "historico_postgresql" if _DB_READY else "historico_csv_local",
     }
 
 
@@ -301,6 +320,7 @@ def stats_summary() -> dict:
     df = get_scored_claims()
     critical = df["clasificacion_riesgo"].eq("critico") if "clasificacion_riesgo" in df.columns else df["score_riesgo"].ge(90)
     priority = df["nivel_riesgo"].isin(["rojo", "amarillo"])
+    alert_count = df["alertas"].apply(len) if "alertas" in df.columns else pd.Series([0] * len(df))
     ahorro_potencial = float((df.loc[priority, "monto_reclamado"].fillna(0) * 0.12).sum())
     return {
         "total_siniestros": int(len(df)),
@@ -308,6 +328,7 @@ def stats_summary() -> dict:
         "casos_amarillos": int((df["nivel_riesgo"] == "amarillo").sum()),
         "casos_verdes": int((df["nivel_riesgo"] == "verde").sum()),
         "casos_criticos": int(critical.sum()),
+        "casos_con_alertas": int((alert_count > 0).sum()),
         "score_promedio": round(float(df["score_riesgo"].mean()), 2),
         "ahorro_potencial": round(ahorro_potencial, 2),
     }

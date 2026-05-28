@@ -228,9 +228,9 @@ def database_status() -> dict[str, Any]:
         }
 
 
-def load_claims_from_db(upload_batch_id: str | None = None) -> pd.DataFrame:
+def load_claims_from_db(upload_batch_id: str | None = None, latest_only: bool = True) -> pd.DataFrame:
     settings = db_settings()
-    where_clause = _batch_where_clause(settings, upload_batch_id)
+    where_clause = _batch_where_clause(settings, upload_batch_id, latest_only=latest_only)
     with _connect(settings["dbname"]) as conn:
         rows = conn.execute(
             f'SELECT {", ".join(CLAIM_COLUMNS)} FROM "{settings["schema"]}"."{settings["table"]}" {where_clause} ORDER BY id_siniestro'
@@ -258,6 +258,11 @@ def load_claims_from_db(upload_batch_id: str | None = None) -> pd.DataFrame:
         df[column] = pd.to_numeric(df[column], errors="coerce")
 
     return df
+
+
+def load_claims_history_from_db() -> pd.DataFrame:
+    """Carga todo el historico guardado para scoring/modelo acumulativo."""
+    return load_claims_from_db(latest_only=False)
 
 
 def list_upload_batches() -> list[dict[str, Any]]:
@@ -472,13 +477,16 @@ def _upsert_dataframe(table_name: str, df: pd.DataFrame, columns: list[str], pk:
     return len(records)
 
 
-def _batch_where_clause(settings: dict[str, str], upload_batch_id: str | None = None) -> str:
+def _batch_where_clause(settings: dict[str, str], upload_batch_id: str | None = None, latest_only: bool = True) -> str:
     if not _table_has_column(settings, "upload_batch_id") or not _table_has_column(settings, "uploaded_at"):
         return ""
 
     if upload_batch_id:
         batch_id = upload_batch_id.replace("'", "''")
         return f"WHERE upload_batch_id = '{batch_id}'"
+
+    if not latest_only:
+        return ""
 
     with _connect(settings["dbname"]) as conn:
         latest = conn.execute(

@@ -11,3 +11,14 @@ def test_score_claims_generates_required_columns():
     assert "explicacion" in df.columns
     assert len(df) > 0
     assert df["score_riesgo"].between(0, 100).all()
+
+
+def test_score_claims_can_train_with_history_but_return_active_rows():
+    active = load_claims("data/synthetic/siniestros_upload_prueba_2026.csv")
+    history = load_claims("data/synthetic/siniestros_sinteticos.csv")
+
+    scored = score_claims(active, training_df=history)
+
+    assert len(scored) == len(active)
+    assert set(scored["id_siniestro"]) == set(active["id_siniestro"])
+    assert scored["score_riesgo"].between(0, 100).all()

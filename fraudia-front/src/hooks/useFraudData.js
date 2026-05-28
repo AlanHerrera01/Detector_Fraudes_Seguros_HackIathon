@@ -81,7 +81,7 @@ export function useFraudData() {
         if (params.search) arr = arr.filter((s) => matchesClaimSearch(s, params.search))
         return { items: arr.map(normalizeClaim), total: arr.length }
       }
-      const claims = await api.getSiniestros({ limit: params.limit || 100 })
+      const claims = await api.getSiniestros({ limit: params.limit || 500 })
       let items = claims.map(normalizeClaim)
       if (params.riesgo && params.riesgo !== 'todos') items = items.filter((s) => s.nivel_riesgo === params.riesgo)
       if (params.search) items = items.filter((s) => matchesClaimSearch(s, params.search))
