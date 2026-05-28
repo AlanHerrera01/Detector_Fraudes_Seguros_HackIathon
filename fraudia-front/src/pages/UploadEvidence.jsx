@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import useFraudData from '../hooks/useFraudData'
 
 export default function UploadEvidence() {
   const api = useFraudData()
+  const navigate = useNavigate()
   const [file, setFile] = useState(null)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
@@ -14,7 +16,15 @@ export default function UploadEvidence() {
     setError('')
     setResult(null)
     try {
-      setResult(await api.uploadDataset(file))
+      const uploadResult = await api.uploadDataset(file)
+      setResult(uploadResult)
+      if (uploadResult?.document_type !== 'pdf') {
+        navigate('/', {
+          state: {
+            uploadMessage: uploadResult?.message || 'Archivo cargado. Dashboard actualizado.',
+          },
+        })
+      }
     } catch (exc) {
       setError(exc.message)
     } finally {

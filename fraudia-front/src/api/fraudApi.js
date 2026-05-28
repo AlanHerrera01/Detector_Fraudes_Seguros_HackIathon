@@ -55,6 +55,10 @@ export async function getAuditReport(params = {}) {
   return request(`/reports/audit${qs ? `?${qs}` : ''}`, { headers: headers() })
 }
 
+export async function getModelMetrics() {
+  return request('/model/metrics', { headers: headers() })
+}
+
 export async function downloadAuditReport(format = 'csv', params = {}) {
   const h = API_KEY ? { 'X-API-Key': API_KEY } : {}
   const extension = format === 'pdf' ? 'pdf' : 'csv'
@@ -103,6 +107,7 @@ export default {
   getProviderNetworks,
   getReportFilters,
   getAuditReport,
+  getModelMetrics,
   downloadAuditReport,
   queryAgent,
   uploadDataset,

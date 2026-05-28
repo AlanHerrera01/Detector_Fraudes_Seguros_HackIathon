@@ -207,11 +207,11 @@ function ExecutiveSummary({ item, explanation }) {
           <span style={statusDotStyle(theme)} />
           <div>
             <h4 style={{ margin: 0 }}>Resumen ejecutivo</h4>
-            <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 2 }}>{theme.label}</div>
+            <div style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 2 }}>{theme.label}</div>
           </div>
         </div>
         <div style={scorePillStyle(theme)}>
-          <span style={{ fontSize: 12, color: 'var(--muted)' }}>Score</span>
+          <span style={{ fontSize: 12, color: '#64748b' }}>Score</span>
           <strong>{item.score}/100</strong>
         </div>
       </div>
@@ -319,8 +319,8 @@ function AlertsSection({ groupedAlerts, hasAlerts }) {
       <div style={alertIntroGridStyle}>
         {ALERT_GROUPS.map((group) => (
           <div key={group.key} style={{ ...alertIntroCardStyle, borderTop: `4px solid ${group.color}` }}>
-            <strong style={{ display: 'block', color: '#111827' }}>{group.title}</strong>
-            <p style={{ margin: '6px 0 0', color: 'var(--muted)', lineHeight: 1.45, fontSize: 13 }}>{group.subtitle}</p>
+            <strong style={{ display: 'block', color: 'var(--text)', fontSize: 15 }}>{group.title}</strong>
+            <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', lineHeight: 1.45, fontSize: 13 }}>{group.subtitle}</p>
           </div>
         ))}
       </div>
@@ -340,7 +340,7 @@ function AlertGroup({ group }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', padding: '10px 12px', borderLeft: `4px solid ${group.color}`, background: 'var(--card-bg)' }}>
         <div>
           <strong>{group.title}</strong>
-          <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 2 }}>{group.alerts.length} senales detectadas</div>
+          <div style={{ color: 'var(--text-secondary)', fontSize: 12, marginTop: 2 }}>{group.alerts.length} senales detectadas</div>
         </div>
         <span style={{ fontFamily: 'var(--font-mono)', color: group.color }}>{group.alerts.reduce((total, alert) => total + Number(alert.puntos || 0), 0)} pts</span>
       </div>
@@ -348,7 +348,7 @@ function AlertGroup({ group }) {
       <div style={{ display: 'grid', gap: 8, padding: 10 }}>
         {group.alerts.length
           ? group.alerts.map((alert) => <AlertCard key={alert.codigo} alert={alert} />)
-          : <div style={{ color: 'var(--muted)', fontSize: 13 }}>Sin alertas de esta categoria.</div>}
+          : <div style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Sin alertas de esta categoria.</div>}
       </div>
     </div>
   )
@@ -420,7 +420,7 @@ const summaryHeaderStyle = {
 
 const summaryLeadStyle = {
   marginTop: 14,
-  color: '#0f172a',
+  color: 'var(--text)',
   fontSize: 18,
   lineHeight: 1.45,
   fontWeight: 750,
@@ -452,7 +452,7 @@ const panelLabelStyle = {
 
 const summaryPanelTextStyle = {
   margin: 0,
-  color: '#334155',
+  color: 'var(--text-secondary)',
   lineHeight: 1.45,
   fontSize: 14,
 }
@@ -465,7 +465,7 @@ const chipRowStyle = {
 
 const factChipStyle = {
   border: '1px solid var(--border)',
-  background: 'var(--card-bg)',
+  background: '#111827',
   color: 'var(--text)',
   borderRadius: 8,
   padding: '7px 9px',
@@ -549,7 +549,7 @@ const alertIntroCardStyle = {
   border: '1px solid var(--border)',
   borderRadius: 8,
   padding: 12,
-  background: 'var(--card-bg)',
+  background: '#1f2937',
 }
 
 const emptyStateStyle = {
@@ -593,9 +593,12 @@ const actionBoxStyle = {
 
 const checkItemStyle = {
   borderLeft: '3px solid var(--accent)',
-  paddingLeft: 8,
-  color: '#334155',
-  lineHeight: 1.4,
+  background: '#111827',
+  borderRadius: 8,
+  padding: '9px 10px 9px 12px',
+  color: 'var(--text-secondary)',
+  lineHeight: 1.45,
+  fontSize: 14,
 }
 
 const ethicsCardStyle = {
@@ -611,7 +614,7 @@ function summaryCardStyle(theme) {
   return {
     border: `1px solid ${theme.border}`,
     borderTop: `5px solid ${theme.color}`,
-    background: 'var(--panel-bg)',
+    background: '#0f1a35',
     borderRadius: 8,
     padding: 16,
     boxShadow: '0 10px 24px rgba(15, 23, 42, 0.06)',
@@ -624,7 +627,7 @@ function statusDotStyle(theme) {
     height: 14,
     borderRadius: 14,
     background: theme.color,
-    boxShadow: `0 0 0 5px ${theme.tint}`,
+    boxShadow: '0 0 0 5px rgba(255, 255, 255, 0.92)',
     flex: '0 0 auto',
   }
 }
@@ -660,8 +663,8 @@ function scorePillStyle(theme) {
 
 function summaryPanelStyle(theme) {
   return {
-    border: '1px solid var(--border)',
-    background: theme.tint,
+    border: `1px solid ${theme.border}`,
+    background: '#111827',
     borderRadius: 8,
     padding: 12,
     minHeight: 92,
@@ -671,8 +674,8 @@ function summaryPanelStyle(theme) {
 function signalChipStyle(theme) {
   return {
     border: `1px solid ${theme.border}`,
-    background: theme.soft,
-    color: 'var(--text)',
+    background: '#1f2937',
+    color: '#f8fafc',
     borderRadius: 8,
     padding: '7px 9px',
     fontSize: 13,

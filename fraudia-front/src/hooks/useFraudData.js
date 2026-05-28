@@ -78,13 +78,13 @@ export function useFraudData() {
       if (USE_MOCK) {
         let arr = MOCK_SINIESTROS.slice()
         if (params.riesgo && params.riesgo !== 'todos') arr = arr.filter((s) => s.nivel_riesgo === params.riesgo)
-        if (params.search) arr = arr.filter((s) => s.id_siniestro.includes(params.search))
+        if (params.search) arr = arr.filter((s) => matchesClaimSearch(s, params.search))
         return { items: arr.map(normalizeClaim), total: arr.length }
       }
       const claims = await api.getSiniestros({ limit: params.limit || 100 })
       let items = claims.map(normalizeClaim)
       if (params.riesgo && params.riesgo !== 'todos') items = items.filter((s) => s.nivel_riesgo === params.riesgo)
-      if (params.search) items = items.filter((s) => s.id_siniestro.toLowerCase().includes(params.search.toLowerCase()))
+      if (params.search) items = items.filter((s) => matchesClaimSearch(s, params.search))
       return { items, total: items.length }
     },
     getSiniestroById: async (id) => {
@@ -126,6 +126,7 @@ export function useFraudData() {
       }))
       return api.getAuditReport(params)
     },
+    getModelMetrics: api.getModelMetrics,
     downloadAuditReport: api.downloadAuditReport,
     queryAgent: async (question, provider = 'gemini', claimId = null) => {
       if (USE_MOCK) return { answer: `Respuesta simulada para: ${question}`, provider }
@@ -133,6 +134,13 @@ export function useFraudData() {
     },
     uploadDataset: api.uploadDataset,
   }), [])
+}
+
+function matchesClaimSearch(claim, search) {
+  const query = String(search || '').trim().toLowerCase()
+  if (!query) return true
+  return [claim.id_siniestro, claim.beneficiario, claim.cobertura, claim.ramo]
+    .some((value) => String(value || '').toLowerCase().includes(query))
 }
 
 export default useFraudData
