@@ -18,11 +18,11 @@ export default function TopBar(){
   const fecha = new Date().toLocaleDateString('es-CO', { weekday:'long', year:'numeric', month:'short', day:'numeric' })
 
   return (
-    <header style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 24px', background:'#fff', borderBottom:'1px solid var(--border)'}}>
+    <header style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 24px', background:'var(--panel-bg)', borderBottom:'1px solid var(--border)'}}>
       <div style={{display:'flex', alignItems:'center', gap:12}}>
         <h3 style={{margin:0}}>{title}</h3>
         <div style={{display:'flex', alignItems:'center', gap:8, marginLeft:8}}>
-          <span style={{width:10,height:10,background:'var(--risk-green)',borderRadius:10,display:'inline-block', boxShadow:'0 0 6px rgba(34,197,94,0.3)', animation:'pulse 2s infinite'}}></span>
+          <span style={{width:10,height:10,background:'var(--accent)',borderRadius:10,display:'inline-block', boxShadow:'0 0 6px rgba(96,165,250,0.5)', animation:'pulse 2s infinite'}}></span>
           <small style={{color:'var(--muted)'}}>{fecha}</small>
         </div>
       </div>

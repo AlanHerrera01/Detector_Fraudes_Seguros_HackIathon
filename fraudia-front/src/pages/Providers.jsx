@@ -22,7 +22,7 @@ export default function Providers() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         {network.slice(0, 4).map((item) => (
-          <div key={item.beneficiario} style={{ background: '#fff', padding: 14, borderRadius: 8, border: '1px solid var(--border)' }}>
+          <div key={item.beneficiario} style={{ background: 'var(--panel-bg)', padding: 14, borderRadius: 8, border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
               <strong>{item.beneficiario}</strong>
               <span style={{ fontFamily: 'var(--font-mono)' }}>Indice {item.indice_concentracion}</span>
@@ -40,7 +40,7 @@ export default function Providers() {
       <h4 style={{ margin: '8px 0 0' }}>Ranking de proveedores</h4>
       <div style={{ display: 'grid', gap: 8 }}>
         {list.map((p, idx) => (
-          <div key={p.beneficiario || p.id} style={{ background: '#fff', padding: 12, borderRadius: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div key={p.beneficiario || p.id} style={{ background: 'var(--panel-bg)', padding: 12, borderRadius: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ fontWeight: 700 }}>{idx + 1}</div>
             <div style={{ flex: 1 }}>
               <div>{p.beneficiario || p.nombre}</div>

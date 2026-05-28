@@ -336,8 +336,8 @@ function AlertsSection({ groupedAlerts, hasAlerts }) {
 
 function AlertGroup({ group }) {
   return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: '#fff' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', padding: '10px 12px', borderLeft: `4px solid ${group.color}`, background: '#f8fafc' }}>
+    <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'var(--panel-bg)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', padding: '10px 12px', borderLeft: `4px solid ${group.color}`, background: 'var(--card-bg)' }}>
         <div>
           <strong>{group.title}</strong>
           <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 2 }}>{group.alerts.length} senales detectadas</div>
@@ -361,7 +361,7 @@ const pageGridStyle = {
 }
 
 const mainPanelStyle = {
-  background: '#fff',
+  background: 'var(--panel-bg)',
   padding: 16,
   borderRadius: 8,
 }
@@ -371,7 +371,7 @@ const caseHeaderStyle = {
   gridTemplateColumns: '1fr auto',
   gap: 12,
   border: '1px solid var(--border)',
-  background: '#f8fafc',
+  background: 'var(--card-bg)',
   borderRadius: 8,
   padding: 14,
   marginBottom: 14,
@@ -398,8 +398,8 @@ const caseFactsStyle = {
 }
 
 const caseFactStyle = {
-  border: '1px solid #e2e8f0',
-  background: '#fff',
+  border: '1px solid var(--border)',
+  background: 'var(--card-bg)',
   borderRadius: 8,
   padding: '9px 10px',
 }
@@ -464,9 +464,9 @@ const chipRowStyle = {
 }
 
 const factChipStyle = {
-  border: '1px solid #e2e8f0',
-  background: '#fff',
-  color: '#334155',
+  border: '1px solid var(--border)',
+  background: 'var(--card-bg)',
+  color: 'var(--text)',
   borderRadius: 8,
   padding: '7px 9px',
   fontSize: 13,
@@ -476,7 +476,7 @@ const factChipStyle = {
 const sectionCardStyle = {
   marginTop: 14,
   border: '1px solid var(--border)',
-  background: '#fff',
+  background: 'var(--panel-bg)',
   borderRadius: 8,
   padding: 14,
 }
@@ -490,14 +490,14 @@ const sectionHeaderStyle = {
 }
 
 const narrativeBodyStyle = {
-  border: '1px solid #dbeafe',
-  background: '#f8fbff',
+  border: '1px solid var(--border)',
+  background: 'var(--card-bg)',
   borderRadius: 8,
   padding: 12,
 }
 
 const descriptionTextStyle = {
-  color: '#1e293b',
+  color: 'var(--text)',
   lineHeight: 1.55,
   fontSize: 15,
 }
@@ -505,15 +505,15 @@ const descriptionTextStyle = {
 const nlpPanelStyle = {
   marginTop: 10,
   border: '1px solid var(--border)',
-  background: '#f8fafc',
+  background: 'var(--card-bg)',
   borderRadius: 8,
   padding: 12,
 }
 
 const nlpBadgeNeutralStyle = {
-  border: '1px solid #bae6fd',
-  background: '#f0f9ff',
-  color: '#0369a1',
+  border: '1px solid var(--border)',
+  background: 'var(--card-bg)',
+  color: 'var(--accent)',
   borderRadius: 8,
   padding: '7px 10px',
   fontSize: 13,
@@ -523,15 +523,15 @@ const nlpBadgeNeutralStyle = {
 
 const nlpBadgeActiveStyle = {
   ...nlpBadgeNeutralStyle,
-  border: '1px solid #fed7aa',
-  background: '#fff7ed',
-  color: '#c2410c',
+  border: '1px solid var(--border-light)',
+  background: 'var(--card-bg)',
+  color: 'var(--risk-yellow)',
 }
 
 const nlpSignalChipStyle = {
-  border: '1px solid #fed7aa',
-  background: '#fff7ed',
-  color: '#9a3412',
+  border: '1px solid var(--border-light)',
+  background: 'var(--card-bg)',
+  color: 'var(--risk-yellow)',
   borderRadius: 8,
   padding: '7px 9px',
   fontSize: 13,
@@ -549,7 +549,7 @@ const alertIntroCardStyle = {
   border: '1px solid var(--border)',
   borderRadius: 8,
   padding: 12,
-  background: '#f8fafc',
+  background: 'var(--card-bg)',
 }
 
 const emptyStateStyle = {
@@ -561,7 +561,7 @@ const emptyStateStyle = {
 const emptyAlertStateStyle = {
   color: 'var(--muted)',
   border: '1px dashed #cbd5e1',
-  background: '#f8fafc',
+  background: 'var(--card-bg)',
   borderRadius: 8,
   padding: 12,
   fontSize: 14,
@@ -574,7 +574,7 @@ const asideStyle = {
 }
 
 const sideCardStyle = {
-  background: '#fff',
+  background: 'var(--panel-bg)',
   padding: 16,
   borderRadius: 8,
   border: '1px solid var(--border)',
@@ -599,7 +599,7 @@ const checkItemStyle = {
 }
 
 const ethicsCardStyle = {
-  background: '#fff',
+  background: 'var(--panel-bg)',
   border: '1px solid var(--border)',
   padding: 12,
   borderRadius: 8,
@@ -611,7 +611,7 @@ function summaryCardStyle(theme) {
   return {
     border: `1px solid ${theme.border}`,
     borderTop: `5px solid ${theme.color}`,
-    background: '#fff',
+    background: 'var(--panel-bg)',
     borderRadius: 8,
     padding: 16,
     boxShadow: '0 10px 24px rgba(15, 23, 42, 0.06)',
@@ -672,7 +672,7 @@ function signalChipStyle(theme) {
   return {
     border: `1px solid ${theme.border}`,
     background: theme.soft,
-    color: '#1f2937',
+    color: 'var(--text)',
     borderRadius: 8,
     padding: '7px 9px',
     fontSize: 13,

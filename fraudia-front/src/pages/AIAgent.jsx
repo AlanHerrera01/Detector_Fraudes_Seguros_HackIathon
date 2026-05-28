@@ -136,7 +136,7 @@ export default function AIAgent() {
               ))}
             </select>
           </label>
-          <button onClick={() => setMessages([INITIAL_MESSAGE])} style={{ background: '#fff', color: '#0f172a', marginTop: 8 }}>Nueva conversacion</button>
+          <button onClick={() => setMessages([INITIAL_MESSAGE])} style={{ background: 'var(--card-bg)', color: 'var(--text)', marginTop: 8 }}>Nueva conversacion</button>
         </div>
       </section>
 
@@ -228,7 +228,7 @@ function MessageBubble({ message }) {
 
 function TypingBubble() {
   return (
-    <div style={{ alignSelf: 'flex-start', background: '#f8fafc', border: '1px solid var(--border)', padding: 12, borderRadius: 8, color: 'var(--muted)' }}>
+    <div style={{ alignSelf: 'flex-start', background: 'var(--card-bg)', border: '1px solid var(--border)', padding: 12, borderRadius: 8, color: 'var(--text-muted)' }}>
       Analizando portafolio, reglas, NLP y proveedores...
     </div>
   )
@@ -236,7 +236,7 @@ function TypingBubble() {
 
 function Panel({ title, children }) {
   return (
-    <section style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 8, padding: 14 }}>
+    <section style={{ background: 'var(--panel-bg)', border: '1px solid var(--border)', borderRadius: 8, padding: 14 }}>
       <h4 style={{ margin: '0 0 10px' }}>{title}</h4>
       {children}
     </section>
@@ -252,7 +252,7 @@ function SourceChip({ source }) {
 }
 
 const heroStyle = {
-  background: 'linear-gradient(135deg, #0f172a 0%, #1f2937 52%, #0f766e 100%)',
+  background: 'linear-gradient(135deg, var(--sidebar-bg) 0%, var(--card-bg) 52%, #0f766e 100%)',
   borderRadius: 8,
   padding: 20,
   display: 'grid',
@@ -293,16 +293,11 @@ const providerFieldStyle = {
 
 const providerSelectStyle = {
   width: '100%',
-  border: '1px solid rgba(255,255,255,0.22)',
-  borderRadius: 8,
-  background: '#fff',
-  color: '#0f172a',
-  padding: '9px 10px',
-  font: 'inherit',
+  // Otros estilos vienen de index.css
 }
 
 const chatShellStyle = {
-  background: '#fff',
+  background: 'var(--panel-bg)',
   border: '1px solid var(--border)',
   borderRadius: 8,
   minHeight: 590,
@@ -318,7 +313,7 @@ const messagesStyle = {
   display: 'flex',
   flexDirection: 'column',
   gap: 13,
-  background: '#fbfdff',
+  background: 'var(--page-bg)',
 }
 
 const composerStyle = {
@@ -326,12 +321,12 @@ const composerStyle = {
   borderTop: '1px solid var(--border)',
   display: 'grid',
   gap: 10,
-  background: '#fff',
+  background: 'var(--card-bg)',
 }
 
 const assistantBubbleStyle = {
-  background: '#fff',
-  color: '#111827',
+  background: 'var(--card-bg)',
+  color: 'var(--text)',
   padding: 13,
   borderRadius: 8,
   lineHeight: 1.5,
@@ -349,11 +344,8 @@ const userBubbleStyle = {
 
 const textareaStyle = {
   resize: 'none',
-  padding: 11,
-  borderRadius: 8,
-  border: '1px solid var(--border)',
-  font: 'inherit',
   lineHeight: 1.45,
+  // Otros estilos vienen de index.css
 }
 
 const sendButtonStyle = {
@@ -372,7 +364,7 @@ const suggestionStyle = {
   textAlign: 'left',
   display: 'grid',
   gap: 4,
-  background: '#f8fafc',
+  background: 'var(--card-bg)',
   border: '1px solid var(--border)',
   padding: 11,
 }

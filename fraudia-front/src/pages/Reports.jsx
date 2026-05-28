@@ -162,7 +162,7 @@ function RiskBadge({ level }) {
 }
 
 const panelStyle = {
-  background: '#fff',
+  background: 'var(--panel-bg)',
   border: '1px solid var(--border)',
   borderRadius: 8,
   padding: 16,
@@ -170,17 +170,13 @@ const panelStyle = {
 
 const errorStyle = {
   ...panelStyle,
-  color: '#991b1b',
-  borderColor: '#fecaca',
-  background: '#fef2f2',
+  color: 'var(--error-text)',
+  borderColor: 'var(--risk-red)',
+  background: 'var(--error-bg)',
 }
 
 const selectStyle = {
-  border: '1px solid var(--border)',
-  borderRadius: 8,
-  padding: '9px 10px',
-  font: 'inherit',
-  background: '#fff',
+  // Los estilos base vienen de index.css
 }
 
 const filtersGridStyle = {
@@ -192,13 +188,13 @@ const filtersGridStyle = {
 const fieldStyle = {
   display: 'grid',
   gap: 5,
-  color: '#475569',
+  color: 'var(--text-muted)',
   fontSize: 12,
 }
 
 const thStyle = {
   textAlign: 'left',
-  color: '#475569',
+  color: 'var(--text-muted)',
   fontSize: 12,
   textTransform: 'uppercase',
   borderBottom: '1px solid var(--border)',

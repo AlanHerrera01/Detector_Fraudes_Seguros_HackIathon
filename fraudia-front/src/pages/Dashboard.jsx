@@ -30,7 +30,7 @@ function RiskPill({ level }) {
 
 function Badge({ label, color }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 999, background: '#1f2937', color, fontWeight: 700, textTransform: 'uppercase', fontSize: 11 }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 999, background: 'var(--card-bg)', color, fontWeight: 700, textTransform: 'uppercase', fontSize: 11 }}>
       <span style={{ width: 8, height: 8, borderRadius: 999, background: color }} />
       {label}
     </span>
@@ -39,7 +39,7 @@ function Badge({ label, color }) {
 
 function Panel({ children, style }) {
   return (
-    <section style={{ background: '#0f1a35', border: '1px solid #1e293b', borderRadius: 12, padding: 20, boxShadow: '0 0 15px rgba(96, 165, 250, 0.05)', ...style }}>
+    <section style={{ background: 'var(--panel-bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 20, boxShadow: '0 0 15px rgba(96, 165, 250, 0.05)', ...style }}>
       {children}
     </section>
   )
@@ -239,7 +239,7 @@ export default function Dashboard() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 16 }}>
             <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', height: 20, borderRadius: 999, overflow: 'hidden', background: '#1e293b' }}>
+              <div style={{ display: 'flex', height: 20, borderRadius: 999, overflow: 'hidden', background: 'var(--border)' }}>
                 <div style={{ width: `${greenPct}%`, background: 'var(--risk-green)' }} />
                 <div style={{ width: `${yellowPct}%`, background: 'var(--risk-yellow)' }} />
                 <div style={{ width: `${redPct}%`, background: 'var(--risk-red)' }} />
@@ -339,7 +339,7 @@ export default function Dashboard() {
             {summary.top.map((item) => {
               const level = levelFromScore(item.score)
               return (
-                <button key={item.id_siniestro} onClick={() => nav(`/siniestros/${item.id_siniestro}`)} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 18, alignItems: 'center', background: '#0d1a35', border: '1px solid #1e293b', padding: 16, borderRadius: 12, textAlign: 'left' }}>
+                <button key={item.id_siniestro} onClick={() => nav(`/siniestros/${item.id_siniestro}`)} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 18, alignItems: 'center', background: 'var(--panel-bg)', border: '1px solid var(--border)', padding: 16, borderRadius: 'var(--radius-lg)', textAlign: 'left' }}>
                   <div>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700 }}>{item.id_siniestro}</div>
                     <div style={{ color: 'var(--muted)', marginTop: 6 }}>{item.cobertura || 'Cobertura desconocida'} • {item.beneficiario || 'Proveedor'} • {item.ramo || 'Categoria'}</div>
@@ -364,7 +364,7 @@ export default function Dashboard() {
           </div>
           <div style={{ display: 'grid', gap: 12, marginTop: 14 }}>
             {networks.slice(0, 5).map((item) => (
-              <div key={item.beneficiario} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center', background: '#0d1a35', borderRadius: 12, padding: 14, border: '1px solid #1e293b' }}>
+              <div key={item.beneficiario} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center', background: 'var(--panel-bg)', borderRadius: 'var(--radius-lg)', padding: 14, border: '1px solid var(--border)' }}>
                 <div>
                   <strong>{item.beneficiario}</strong>
                   <div style={{ color: 'var(--muted)', marginTop: 6, fontSize: 13 }}>
@@ -386,7 +386,7 @@ export default function Dashboard() {
 
 function MiniStat({ label, value, color }) {
   return (
-    <div style={{ display: 'grid', gap: 6, padding: 14, background: '#0d1a35', borderRadius: 12, border: '1px solid #1e293b', boxShadow: '0 0 10px rgba(96, 165, 250, 0.05)' }}>
+    <div style={{ display: 'grid', gap: 6, padding: 14, background: 'var(--panel-bg)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', boxShadow: '0 0 10px rgba(96, 165, 250, 0.05)' }}>
       <span style={{ fontSize: 13, color: 'var(--muted)' }}>{label}</span>
       <strong style={{ color, fontSize: 18 }}>{value}</strong>
     </div>
@@ -395,7 +395,7 @@ function MiniStat({ label, value, color }) {
 
 function SummaryLine({ label, value }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: 14, borderRadius: 12, background: '#0d1a35', border: '1px solid #1e293b', boxShadow: '0 0 10px rgba(96, 165, 250, 0.05)' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: 14, borderRadius: 'var(--radius-lg)', background: 'var(--panel-bg)', border: '1px solid var(--border)', boxShadow: '0 0 10px rgba(96, 165, 250, 0.05)' }}>
       <span style={{ color: 'var(--muted)' }}>{label}</span>
       <strong style={{ color: '#10b981' }}>{value}</strong>
     </div>
@@ -403,13 +403,13 @@ function SummaryLine({ label, value }) {
 }
 
 const panelButtonStyle = {
-  background: '#1f2937',
-  color: '#60a5fa',
+  background: 'var(--card-bg)',
+  color: 'var(--accent)',
   padding: '8px 12px',
   fontSize: 13,
   fontWeight: 700,
   borderRadius: 10,
-  border: '1px solid #374151',
+  border: '1px solid var(--border-light)',
   whiteSpace: 'nowrap',
   flex: '0 0 auto',
   transition: 'all 180ms ease',
@@ -431,7 +431,7 @@ function PieChart({ data, labelKey, valueKey }) {
   
   if (validData.length === 0 || total === 0) {
     return (
-      <div style={{ display: 'grid', placeItems: 'center', gap: 12, marginTop: 14, minHeight: 200, background: '#0d1a35', borderRadius: 12, padding: 20, border: '1px solid #1e293b' }}>
+      <div style={{ display: 'grid', placeItems: 'center', gap: 12, marginTop: 14, minHeight: 200, background: 'var(--panel-bg)', borderRadius: 'var(--radius-lg)', padding: 20, border: '1px solid var(--border)' }}>
         <div style={{ fontSize: 48 }}>📊</div>
         <div style={{ color: 'var(--muted)', textAlign: 'center', fontSize: 13 }}>No hay datos para mostrar en este gráfico.</div>
       </div>
@@ -519,7 +519,7 @@ function BarChart({ data, labelKey, valueKey, color }) {
               <span style={{ color: 'var(--muted)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item[labelKey]}</span>
               <strong>{value}</strong>
             </div>
-            <div style={{ height: 12, width: '100%', background: '#1e293b', borderRadius: 999, overflow: 'hidden' }}>
+            <div style={{ height: 12, width: '100%', background: 'var(--border)', borderRadius: 999, overflow: 'hidden' }}>
               <div style={{ width, height: '100%', borderRadius: 999, background: color }} />
             </div>
           </div>
@@ -541,7 +541,7 @@ function BreakdownChart({ items, color }) {
               <span>{item.label}</span>
               <span>{item.count}</span>
             </div>
-            <div style={{ height: 10, width: '100%', background: '#1e293b', borderRadius: 999, overflow: 'hidden' }}>
+            <div style={{ height: 10, width: '100%', background: 'var(--border)', borderRadius: 999, overflow: 'hidden' }}>
               <div style={{ width: `${width}%`, height: '100%', borderRadius: 999, background: color }} />
             </div>
           </div>
