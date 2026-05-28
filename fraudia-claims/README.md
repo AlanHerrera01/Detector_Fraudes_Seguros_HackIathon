@@ -1,63 +1,66 @@
-# FraudIA Claims
+# FraudIA Claims - Backend
 
-Backend para el reto **Detector de Posibles Fraudes en Siniestros usando Inteligencia Artificial**.
+Backend FastAPI para analizar siniestros, calcular riesgo, explicar alertas y responder consultas del agente IA.
 
-La solucion genera alertas de revision, no acusaciones automaticas de fraude. Combina reglas de negocio, scoring de riesgo, un modelo de IA sencillo y un agente conversacional con Gemini para explicar resultados. Opcionalmente puede usar Qwen 2.5 3B local como respaldo via Ollama.
+La API procesa CSV, Excel y PDF. CSV/Excel actualizan el dataset activo; PDF se usa como soporte narrativo. El backend mantiene historico en PostgreSQL o CSV local para mejorar el componente ML sin mezclar visualmente archivos anteriores en el dashboard.
 
 ## Stack
 
-- Python 3.11 o 3.12 recomendado
-- Python
+- Python 3.11 recomendado
 - FastAPI
 - Pandas
 - Scikit-learn
+- PostgreSQL opcional
 - Gemini API
-- Ollama + Qwen 2.5 3B opcional
+- Ollama + Qwen opcional como respaldo local
 - Pytest
 
-## Cumplimiento de requisitos minimos
+## Capacidades
 
-| Categoria | Estado | Evidencia |
-| --- | --- | --- |
-| Lenguaje | Cumple | Proyecto implementado en Python. |
-| Base de datos o archivos planos | Cumple | Dataset CSV sintetico en `data/synthetic/siniestros_sinteticos.csv`. |
-| Repositorio | Cumple si se publica o se da acceso al jurado | Repositorio Git con estructura versionable. |
-| Documentacion | Cumple | `README.md` y documentos en `docs/` sobre arquitectura, modelo de datos, reglas, limitaciones y uso de IA. |
-| Codigo modular | Cumple | Modulos separados para ingestion, features, reglas, modelo, explicabilidad, agente IA y API. |
-| Interfaz o demo funcional | Cumple | API web FastAPI con Swagger en `/docs`, explicacion ejecutiva y analisis de redes. |
-| Dependencias | Cumple | `requirements.txt`. |
-| Configuracion | Cumple | `.env.example`; no incluir `.env` real en el repo. |
+- Ingestion de CSV y Excel con normalizacion de encabezados.
+- Seleccion automatica de hoja de siniestros en Excel.
+- Analisis de PDF como soporte narrativo.
+- Features de riesgo tabular.
+- Reglas explicables RF, S y NLP.
+- ML supervisado con `RandomForestClassifier` si hay etiqueta.
+- Deteccion de anomalias con `IsolationForest` si no hay etiqueta.
+- NLP transparente para narrativa vaga, sensible, inconsistente o clonada.
+- Score final 0-100 y semaforo verde/amarillo/rojo.
+- Explicacion ejecutiva por siniestro.
+- Metricas tecnicas para jurado.
+- Reportes JSON, CSV y PDF.
+- Agente IA con Gemini.
 
-## Instalacion
-
-> Recomendado: usar **Python 3.11**. Python 3.12 tambien funciona. Evita Python 3.14 por ahora, porque algunas dependencias de datos como `pandas` y `scikit-learn` pueden intentar compilarse localmente y fallar en Windows.
+## Instalacion Local
 
 ```bash
+cd fraudia-claims
 py -3.11 -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 copy .env.example .env
 ```
 
-`fraudia-claims/.env.example` es la plantilla segura y comentada. `fraudia-claims/.env` es privado, contiene credenciales reales y no debe subirse al repositorio.
+Evita Python 3.14 para este proyecto: algunas librerias de datos pueden intentar compilarse en Windows.
 
-Configura `GEMINI_API_KEY` en `.env` para usar el agente conversacional. Por ahora Gemini es el unico proveedor activo; OpenAI, GitHub Models y respuesta local quedan comentados como futuras implementaciones.
+## Variables
 
-```text
+Configura `fraudia-claims/.env`. No subir este archivo al repositorio.
+
+Gemini:
+
+```env
 AI_PROVIDER=gemini
 GEMINI_API_KEY=tu_api_key
+GEMINI_MODEL=gemini-2.5-flash
+GEMINI_TIMEOUT_SECONDS=12
+GEMINI_MAX_CONTEXT_CHARS=6000
+GEMINI_MAX_OUTPUT_TOKENS=700
 ```
 
-Para activar respaldo local con Qwen 2.5 3B, instala Ollama, ejecuta `ollama run qwen2.5:3b` y configura:
+PostgreSQL:
 
-```text
-LOCAL_LLM_ENABLED=true
-LOCAL_LLM_MODEL=qwen2.5:3b
-```
-
-Para usar PostgreSQL, configura en `.env`:
-
-```text
+```env
 DB_ENABLED=true
 DB_HOST=127.0.0.1
 DB_PORT=5432
@@ -66,15 +69,23 @@ DB_USER=postgres
 DB_PASSWORD=tu_password
 ```
 
-Al iniciar, la API crea la base y la tabla si no existen, y siembra el CSV sintetico si la tabla esta vacia.
+Qwen local opcional:
+
+```env
+LOCAL_LLM_ENABLED=true
+LOCAL_LLM_MODEL=qwen2.5:3b
+LOCAL_LLM_ENDPOINT=http://127.0.0.1:11434/api/generate
+```
 
 ## Ejecucion
 
 ```bash
-uvicorn src.app.main:app --reload
+cd fraudia-claims
+$env:PYTHONPATH='.'
+uvicorn src.app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-Luego abre:
+Swagger:
 
 ```text
 http://127.0.0.1:8000/docs
@@ -83,16 +94,63 @@ http://127.0.0.1:8000/docs
 ## Pruebas
 
 ```bash
+cd fraudia-claims
+$env:PYTHONPATH='.'
 pytest -q
 ```
 
-## Endpoints principales
+## Ingestion
+
+Formatos soportados:
+
+- `.csv`
+- `.xlsx`
+- `.xls`
+- `.pdf`
+
+Columnas minimas o equivalentes:
+
+```text
+id_siniestro, id_poliza, id_asegurado, ramo, cobertura,
+fecha_ocurrencia, fecha_reporte, monto_reclamado, descripcion
+```
+
+El loader reconoce encabezados como:
+
+- `ID Siniestro`
+- `ID Poliza`
+- `ID Asegurado`
+- `Fecha Ocurrencia`
+- `Monto Reclamado ($)`
+- `Descripcion del Evento`
+
+## Historico Y Aprendizaje
+
+El sistema separa dos conceptos:
+
+- **Dataset activo**: archivo que el usuario acaba de subir y que se muestra en dashboard/agente/reportes.
+- **Historico acumulado**: cargas anteriores guardadas para entrenar o comparar el componente ML.
+
+Con PostgreSQL activo:
+
+- Se guarda cada upload como batch.
+- El dashboard ve el ultimo batch activo.
+- El ML puede entrenar con todo el historico.
+
+Sin PostgreSQL:
+
+- Se guarda historico local en `data/processed/upload_history.csv`.
+- Se guarda el activo local en `data/processed/active_upload.csv`.
+
+`data/processed/` esta ignorado por git.
+
+## Endpoints
 
 - `GET /health`
 - `GET /db/status`
 - `POST /db/init`
 - `POST /claims/upload`
-- `GET /claims`
+- `GET /claims?limit=500`
 - `GET /claims/{id_siniestro}`
 - `POST /claims/{id_siniestro}/score`
 - `GET /claims/{id_siniestro}/explanation`
@@ -101,41 +159,52 @@ pytest -q
 - `GET /networks/providers`
 - `GET /stats/summary`
 - `GET /model/metrics`
+- `GET /reports/filters`
 - `GET /reports/audit`
 - `GET /reports/audit.csv`
+- `GET /reports/audit.pdf`
 - `POST /agent/query`
 
-Ejemplo de consulta al agente:
+Ejemplo agente:
 
 ```json
 {
-  "question": "Que proveedores concentran mas alertas rojas?",
+  "question": "Cuales son los 10 siniestros con mayor riesgo de posible fraude?",
   "provider": "gemini"
 }
 ```
 
+## Metricas
+
+`GET /model/metrics` devuelve:
+
+- Total de casos evaluados.
+- Porcentaje marcado amarillo/rojo.
+- Distribucion de riesgo.
+- Ranking de anomalias.
+- NLP narrativo.
+- Validacion con reglas.
+- Metricas supervisadas si existe `etiqueta_fraude_simulada` con mas de una clase.
+
+Si no hay etiqueta, el panel indicara que no hay evaluacion supervisada disponible, pero el sistema sigue priorizando con reglas, NLP y anomalias.
+
 ## Estructura
 
 ```text
-data/
-  raw/
-  processed/
-  synthetic/
 src/
-  ingestion/
-  features/
-  rules/
-  models/
-  explainability/
-  ai_agent/
-  app/
-docs/
-tests/
-presentation/
+  app/              FastAPI y endpoints
+  ai_agent/         Agente Gemini/Qwen y fallback estructurado
+  db/               PostgreSQL e historico
+  explainability/   Explicaciones ejecutivas
+  features/         Features tabulares y NLP
+  ingestion/        Carga CSV/Excel/PDF e historico local
+  models/           ML y metricas
+  rules/            Reglas de fraude explicables
+tests/              Pruebas unitarias
+docs/               Arquitectura, etica y uso IA
+data/               Datos sinteticos y carpetas locales
 ```
 
-## Principio etico
+## Etica
 
-El score es una priorizacion operativa para analistas. No reemplaza revision humana, no rechaza siniestros automaticamente y no confirma fraude.
-
-Ver tambien `docs/etica_sesgos.md` para riesgos, sesgos y controles de uso responsable.
+El backend nunca debe afirmar fraude confirmado. Usa lenguaje de alerta, riesgo o revision humana. Ver `docs/etica_sesgos.md`.
