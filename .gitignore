@@ -1,0 +1,17 @@
+# Secrets and local environment files
+**/.env
+**/.env.*
+!**/.env.example
+
+# Python
+**/.venv/
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+
+# Node
+**/node_modules/
+**/dist/
+
+# Logs
+**/*.log

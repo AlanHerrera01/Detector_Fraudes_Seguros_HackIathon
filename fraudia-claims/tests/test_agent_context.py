@@ -37,6 +37,14 @@ def test_ai_provider_selector_supports_local_without_credentials():
     assert "revision" in answer.lower()
 
 
+def test_ai_provider_selector_supports_openai_without_credentials(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "your_openai_api_key_here")
+    answer, provider = ask_ai_model("Resume los riesgos", "total_siniestros=10", "openai")
+
+    assert provider == "openai"
+    assert "OpenAI no esta configurado" in answer
+
+
 def test_agent_context_uses_active_claim_id_for_generic_question():
     df = _scored_claims()
     context, sources = build_context("Por que salio alto?", df, claim_id="SIN-0002")

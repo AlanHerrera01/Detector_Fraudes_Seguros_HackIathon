@@ -41,7 +41,7 @@ Funciones principales:
 - Explicacion ejecutiva por siniestro.
 - Ranking de proveedores.
 - Reportes de auditoria en JSON, CSV y PDF.
-- Agente IA configurable con Gemini, GitHub Models o fallback local.
+- Agente IA configurable con Gemini, OpenAI, GitHub Models o fallback local.
 
 Instalacion:
 
@@ -52,6 +52,8 @@ py -3.11 -m venv .venv
 pip install -r requirements.txt
 copy .env.example .env
 ```
+
+El archivo `.env.example` es la plantilla documentada y se puede subir al repositorio. El archivo `.env` es local y privado: ahi van tokens reales de Gemini, OpenAI, GitHub Models y PostgreSQL. No debe compartirse ni commitearse.
 
 Ejecucion:
 
@@ -88,6 +90,27 @@ Endpoints destacados:
 - `GET /reports/audit.pdf`
 - `POST /agent/query`
 
+Proveedores disponibles para el agente:
+
+- `gemini`
+- `openai`
+- `github`
+- `local`
+
+Para usar OpenAI, agrega en `fraudia-claims/.env`:
+
+```text
+OPENAI_API_KEY=tu_api_key
+OPENAI_MODEL=gpt-5.2
+AI_PROVIDER=openai
+```
+
+Si no quieres usar credenciales durante una demo, usa:
+
+```text
+AI_PROVIDER=local
+```
+
 ## Frontend: `fraudia-front`
 
 El frontend es una aplicacion React con Vite para operar la demo de FraudIA. Consume la API del backend y presenta los casos en una experiencia visual para analistas.
@@ -113,6 +136,8 @@ cd fraudia-front
 npm install
 copy .env.example .env
 ```
+
+En el frontend solo deben existir variables publicas con prefijo `VITE_`. Las API keys de IA no van en `fraudia-front/.env`; deben quedarse en el `.env` del backend.
 
 Variables esperadas:
 
@@ -172,7 +197,7 @@ Backend:
 - Pandas
 - Scikit-learn
 - Pytest
-- Gemini API / GitHub Models / fallback local
+- Gemini API / OpenAI API / GitHub Models / fallback local
 
 Frontend:
 
