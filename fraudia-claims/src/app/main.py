@@ -326,7 +326,7 @@ def _report_scored_claims(
     provider: str | None = None,
 ) -> pd.DataFrame:
     source = load_claims_from_db(upload_batch_id) if _DB_READY else get_scored_claims()
-    scored = score_claims(source)
+    scored = source.copy() if "score_riesgo" in source.columns else score_claims(source)
 
     if date_from:
         start = pd.to_datetime(date_from, errors="coerce")
@@ -444,55 +444,61 @@ def _build_simple_pdf(report: pd.DataFrame) -> bytes:
     yellow = int((report["nivel_riesgo"] == "amarillo").sum()) if total else 0
     green = int((report["nivel_riesgo"] == "verde").sum()) if total else 0
     avg_score = round(float(report["score_riesgo"].mean()), 2) if total else 0
+    priority = red + yellow
+    total_amount = float(report["monto_reclamado"].fillna(0).sum()) if total else 0
     alert_counts: dict[str, int] = {}
     for value in report.get("codigos_alerta", pd.Series(dtype=str)).fillna(""):
         for code in str(value).split(","):
             clean = code.strip()
             if clean:
                 alert_counts[clean] = alert_counts.get(clean, 0) + 1
-    top_alerts = sorted(alert_counts.items(), key=lambda item: item[1], reverse=True)[:10]
+    top_alerts = sorted(alert_counts.items(), key=lambda item: item[1], reverse=True)[:8]
 
-    lines = [
-        "FraudIA - Reporte de auditoria",
-        f"Generado: {datetime.now(timezone.utc).astimezone().strftime('%Y-%m-%d %H:%M')}",
-        "Alerta para revision humana; no confirma fraude ni decide rechazos automaticamente.",
-        "",
-        "Resumen ejecutivo",
-        f"- Registros incluidos: {total}",
-        f"- Score promedio: {avg_score}",
-        f"- Semaforo: {red} rojo | {yellow} amarillo | {green} verde",
-        f"- Casos prioritarios: {red + yellow}",
-        "",
-        "Tipos de alertas mas frecuentes",
-    ]
-    if top_alerts:
-        for code, count in top_alerts:
-            lines.append(f"- {code}: {count} caso(s) - {_alert_description(code)}")
-    else:
-        lines.append("- Sin alertas activadas en el filtro seleccionado.")
-    lines.extend(["", "Casos prioritarios"])
-    for _, row in report.head(60).iterrows():
-        if row.get("nivel_riesgo") == "verde" and len(report) > 12:
-            continue
-        lines.extend(
-            [
-                f"{row.get('id_siniestro')} | {str(row.get('nivel_riesgo')).upper()} | score {row.get('score_riesgo')} | {row.get('beneficiario')}",
-                f"Cobertura/ciudad: {row.get('cobertura')} - {row.get('ciudad')} | Monto: {row.get('monto_reclamado')}",
-                f"Alertas: {str(row.get('codigos_alerta') or 'Sin alertas')[:105]}",
-                f"Lectura: {str(row.get('explicacion') or '')[:125]}",
-                "",
-            ]
-        )
-    lines.extend(
+    pdf = _AuditPdf()
+    generated_at = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M")
+    pdf.hero("FraudIA", "Reporte ejecutivo de auditoria", generated_at)
+    pdf.notice("Alerta para revision humana. No confirma fraude ni decide rechazos automaticamente.")
+
+    pdf.section("Resumen ejecutivo")
+    pdf.metric_cards(
         [
-            "Notas de lectura",
-            "- Rojo: requiere revision especializada y validacion documental prioritaria.",
-            "- Amarillo: requiere revision dirigida antes de cierre operativo.",
-            "- Verde: flujo normal salvo que auditoria solicite validacion adicional.",
-            "- Este reporte orienta priorizacion; no confirma fraude ni recomienda rechazo automatico.",
+            ("Registros", str(total), "Siniestros incluidos"),
+            ("Score promedio", str(avg_score), "Riesgo consolidado"),
+            ("Prioritarios", str(priority), "Rojo + amarillo"),
+            ("Monto auditado", _money(total_amount), "Valor reclamado"),
         ]
     )
-    return _pdf_from_lines(lines)
+    pdf.risk_strip(red, yellow, green)
+
+    pdf.section("Alertas mas frecuentes")
+    if top_alerts:
+        max_count = max(count for _, count in top_alerts) or 1
+        for code, count in top_alerts:
+            pdf.alert_row(code, _alert_description(code), count, max_count)
+    else:
+        pdf.paragraph("Sin alertas activadas en el filtro seleccionado.", color=(90, 100, 116))
+
+    pdf.section("Casos prioritarios")
+    priority_rows = report[report["nivel_riesgo"].isin(["rojo", "amarillo"])].head(12)
+    if priority_rows.empty:
+        priority_rows = report.head(6)
+    if priority_rows.empty:
+        pdf.paragraph("No hay registros para mostrar con los filtros seleccionados.", color=(90, 100, 116))
+    else:
+        for _, row in priority_rows.iterrows():
+            pdf.case_card(row)
+
+    pdf.section("Notas de lectura")
+    notes = [
+        "Rojo: requiere revision especializada y validacion documental prioritaria.",
+        "Amarillo: requiere revision dirigida antes de cierre operativo.",
+        "Verde: flujo normal salvo que auditoria solicite validacion adicional.",
+        "El reporte orienta priorizacion; la decision final debe ser humana y trazable.",
+    ]
+    for note in notes:
+        pdf.bullet(note)
+
+    return pdf.render()
 
 
 def _alert_description(code: str) -> str:
@@ -563,6 +569,256 @@ def _pdf_from_lines(lines: list[str]) -> bytes:
         output.extend(f"{offset:010d} 00000 n \n".encode())
     output.extend(f"trailer\n<< /Size {len(objects) + 1} /Root {catalog_id} 0 R >>\nstartxref\n{xref_offset}\n%%EOF".encode())
     return bytes(output)
+
+
+class _AuditPdf:
+    width = 612
+    height = 792
+    margin = 42
+    bottom = 42
+
+    def __init__(self) -> None:
+        self.pages: list[list[str]] = []
+        self.y = 0
+        self._new_page()
+
+    def hero(self, brand: str, title: str, generated_at: str) -> None:
+        self.rect(0, 702, self.width, 90, fill=(15, 23, 42))
+        self.rect(0, 702, 12, 90, fill=(20, 184, 166))
+        self.text(self.margin, 752, brand, size=24, font="F2", color=(255, 255, 255))
+        self.text(self.margin, 730, title, size=15, font="F2", color=(204, 251, 241))
+        self.text(430, 752, "Generado", size=9, font="F2", color=(148, 163, 184))
+        self.text(430, 735, generated_at, size=11, font="F1", color=(255, 255, 255))
+        self.y = 674
+
+    def notice(self, text: str) -> None:
+        self.ensure(42)
+        self.rect(self.margin, self.y - 26, self.width - (self.margin * 2), 34, fill=(236, 253, 245), stroke=(153, 246, 228))
+        self.text(self.margin + 12, self.y - 7, text, size=9.5, font="F2", color=(15, 118, 110))
+        self.y -= 50
+
+    def section(self, title: str) -> None:
+        self.ensure(45)
+        self.text(self.margin, self.y, title, size=15, font="F2", color=(15, 23, 42))
+        self.rect(self.margin, self.y - 9, 80, 2, fill=(20, 184, 166))
+        self.y -= 28
+
+    def metric_cards(self, cards: list[tuple[str, str, str]]) -> None:
+        self.ensure(88)
+        gap = 10
+        card_width = (self.width - (self.margin * 2) - (gap * 3)) / 4
+        x = self.margin
+        for label, value, caption in cards:
+            self.rect(x, self.y - 62, card_width, 66, fill=(248, 250, 252), stroke=(226, 232, 240))
+            self.text(x + 10, self.y - 14, label.upper(), size=7.5, font="F2", color=(100, 116, 139))
+            self.text(x + 10, self.y - 36, value, size=16, font="F2", color=(15, 23, 42))
+            self.text(x + 10, self.y - 53, caption, size=8, font="F1", color=(100, 116, 139))
+            x += card_width + gap
+        self.y -= 86
+
+    def risk_strip(self, red: int, yellow: int, green: int) -> None:
+        total = max(red + yellow + green, 1)
+        self.ensure(46)
+        x = self.margin
+        y = self.y - 20
+        width = self.width - (self.margin * 2)
+        self.text(x, self.y, "Distribucion del semaforo", size=10, font="F2", color=(51, 65, 85))
+        cursor = x
+        for count, color in [(red, (220, 38, 38)), (yellow, (245, 158, 11)), (green, (22, 163, 74))]:
+            segment = width * (count / total)
+            if segment > 0:
+                self.rect(cursor, y, max(segment, 2), 13, fill=color)
+                cursor += segment
+        self.text(x, y - 14, f"{red} rojo   |   {yellow} amarillo   |   {green} verde", size=8.5, color=(71, 85, 105))
+        self.y -= 52
+
+    def alert_row(self, code: str, description: str, count: int, max_count: int) -> None:
+        self.ensure(30)
+        bar_width = 230 * (count / max_count)
+        self.text(self.margin, self.y, f"{code}", size=9.5, font="F2", color=(15, 23, 42))
+        self.text(self.margin + 48, self.y, description, size=9, color=(51, 65, 85))
+        self.rect(self.margin + 285, self.y - 8, 230, 8, fill=(226, 232, 240))
+        self.rect(self.margin + 285, self.y - 8, bar_width, 8, fill=(20, 184, 166))
+        self.text(self.margin + 525, self.y - 1, str(count), size=8.5, font="F2", color=(15, 23, 42))
+        self.y -= 22
+
+    def case_card(self, row) -> None:
+        level = str(row.get("nivel_riesgo") or "").lower()
+        accent = _risk_rgb(level)
+        card_height = 116
+        self.ensure(card_height + 16)
+        x = self.margin
+        y = self.y - card_height
+        width = self.width - (self.margin * 2)
+        self.rect(x, y, width, card_height, fill=(255, 255, 255), stroke=(226, 232, 240))
+        self.rect(x, y, 7, card_height, fill=accent)
+        self.text(x + 16, self.y - 20, str(row.get("id_siniestro")), size=12, font="F2", color=(15, 23, 42))
+        self.badge(x + 110, self.y - 31, str(row.get("nivel_riesgo")).upper(), accent)
+        self.text(x + 205, self.y - 20, f"Score {row.get('score_riesgo')}/100", size=10, font="F2", color=(15, 23, 42))
+        self.text(x + 16, self.y - 43, f"Proveedor: {row.get('beneficiario')}", size=9, color=(51, 65, 85))
+        self.text(x + 295, self.y - 43, f"Ciudad: {row.get('ciudad')}", size=9, color=(51, 65, 85))
+        self.text(x + 16, self.y - 61, f"Cobertura: {row.get('cobertura')}", size=9, color=(51, 65, 85))
+        self.text(x + 295, self.y - 61, f"Monto: {_money(row.get('monto_reclamado'))}", size=9, color=(51, 65, 85))
+        alerts = str(row.get("codigos_alerta") or "Sin alertas")
+        self.paragraph(f"Alertas: {alerts}", x=x + 16, width=width - 32, size=8.5, color=(71, 85, 105), line_gap=11, max_lines=2)
+        self.y = y - 16
+
+    def badge(self, x: float, y: float, label: str, color: tuple[int, int, int]) -> None:
+        self.rect(x, y, 80, 18, fill=color)
+        self.text(x + 8, y + 5, label, size=8, font="F2", color=(255, 255, 255))
+
+    def bullet(self, text: str) -> None:
+        self.ensure(25)
+        self.text(self.margin, self.y, "-", size=10, font="F2", color=(20, 184, 166))
+        used = self.paragraph(text, x=self.margin + 14, width=self.width - (self.margin * 2) - 14, size=9, color=(51, 65, 85), line_gap=13)
+        self.y -= max(used, 16)
+
+    def paragraph(
+        self,
+        text: str,
+        x: float | None = None,
+        width: float | None = None,
+        size: float = 9,
+        color: tuple[int, int, int] = (15, 23, 42),
+        line_gap: float = 13,
+        max_lines: int | None = None,
+    ) -> float:
+        x = self.margin if x is None else x
+        width = self.width - (self.margin * 2) if width is None else width
+        lines = _wrap_pdf_text(text, width, size)
+        if max_lines is not None:
+            lines = lines[:max_lines]
+        start_y = self.y
+        for line in lines:
+            self.ensure(line_gap + 4)
+            self.text(x, self.y, line, size=size, color=color)
+            self.y -= line_gap
+        return start_y - self.y
+
+    def ensure(self, height: float) -> None:
+        if self.y - height < self.bottom:
+            self._new_page()
+
+    def _new_page(self) -> None:
+        self.pages.append([])
+        self.y = 728
+        self.rect(0, 0, self.width, self.height, fill=(255, 255, 255))
+        self.rect(0, 764, self.width, 28, fill=(15, 23, 42))
+        self.text(self.margin, 775, "FraudIA | Reporte de auditoria", size=9, font="F2", color=(255, 255, 255))
+        self.text(520, 775, f"Pag. {len(self.pages)}", size=8, color=(203, 213, 225))
+
+    def rect(
+        self,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        fill: tuple[int, int, int] | None = None,
+        stroke: tuple[int, int, int] | None = None,
+    ) -> None:
+        command = ["q"]
+        if fill:
+            command.append(f"{_rgb(fill)} rg")
+        if stroke:
+            command.append(f"{_rgb(stroke)} RG")
+        command.append(f"{x:.2f} {y:.2f} {width:.2f} {height:.2f} re")
+        command.append("B" if fill and stroke else "f" if fill else "S")
+        command.append("Q")
+        self.pages[-1].append("\n".join(command))
+
+    def text(
+        self,
+        x: float,
+        y: float,
+        text: str,
+        size: float = 10,
+        font: str = "F1",
+        color: tuple[int, int, int] = (0, 0, 0),
+    ) -> None:
+        escaped = _pdf_escape(text)
+        self.pages[-1].append(f"BT\n{_rgb(color)} rg\n/{font} {size:.2f} Tf\n{x:.2f} {y:.2f} Td\n({escaped}) Tj\nET")
+
+    def render(self) -> bytes:
+        return _pdf_from_page_streams(self.pages)
+
+
+def _pdf_from_page_streams(page_streams: list[list[str]]) -> bytes:
+    objects: list[bytes] = []
+    page_ids: list[int] = []
+
+    def add_object(content: bytes) -> int:
+        objects.append(content)
+        return len(objects)
+
+    catalog_id = add_object(b"<< /Type /Catalog /Pages 2 0 R >>")
+    pages_id = add_object(b"")
+    font_regular_id = add_object(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+    font_bold_id = add_object(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>")
+
+    for stream_lines in page_streams:
+        stream = "\n".join(stream_lines).encode("latin-1", errors="replace")
+        content_id = add_object(b"<< /Length " + str(len(stream)).encode() + b" >>\nstream\n" + stream + b"\nendstream")
+        page_id = add_object(
+            f"<< /Type /Page /Parent {pages_id} 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 {font_regular_id} 0 R /F2 {font_bold_id} 0 R >> >> /Contents {content_id} 0 R >>".encode()
+        )
+        page_ids.append(page_id)
+
+    objects[pages_id - 1] = f"<< /Type /Pages /Kids [{' '.join(f'{page_id} 0 R' for page_id in page_ids)}] /Count {len(page_ids)} >>".encode()
+    return _serialize_pdf_objects(objects, catalog_id)
+
+
+def _serialize_pdf_objects(objects: list[bytes], catalog_id: int) -> bytes:
+    output = bytearray(b"%PDF-1.4\n")
+    offsets = [0]
+    for index, content in enumerate(objects, start=1):
+        offsets.append(len(output))
+        output.extend(f"{index} 0 obj\n".encode())
+        output.extend(content)
+        output.extend(b"\nendobj\n")
+    xref_offset = len(output)
+    output.extend(f"xref\n0 {len(objects) + 1}\n".encode())
+    output.extend(b"0000000000 65535 f \n")
+    for offset in offsets[1:]:
+        output.extend(f"{offset:010d} 00000 n \n".encode())
+    output.extend(f"trailer\n<< /Size {len(objects) + 1} /Root {catalog_id} 0 R >>\nstartxref\n{xref_offset}\n%%EOF".encode())
+    return bytes(output)
+
+
+def _wrap_pdf_text(text: str, width: float, size: float) -> list[str]:
+    max_chars = max(18, int(width / (size * 0.52)))
+    words = str(text).split()
+    lines: list[str] = []
+    current = ""
+    for word in words:
+        candidate = f"{current} {word}".strip()
+        if len(candidate) <= max_chars:
+            current = candidate
+        else:
+            if current:
+                lines.append(current)
+            current = word[:max_chars]
+    if current:
+        lines.append(current)
+    return lines or [""]
+
+
+def _rgb(color: tuple[int, int, int]) -> str:
+    return " ".join(f"{component / 255:.3f}" for component in color)
+
+
+def _risk_rgb(level: str) -> tuple[int, int, int]:
+    if level == "rojo":
+        return (220, 38, 38)
+    if level == "amarillo":
+        return (245, 158, 11)
+    return (22, 163, 74)
+
+
+def _money(value) -> str:
+    try:
+        return f"${float(value):,.0f}"
+    except (TypeError, ValueError):
+        return "$0"
 
 
 def _pdf_escape(text: str) -> str:
