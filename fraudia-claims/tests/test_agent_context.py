@@ -1,4 +1,4 @@
-from src.ai_agent.claims_agent import build_context
+from src.ai_agent.claims_agent import answer_question, build_context
 from src.ai_agent.gemini_service import ask_ai_model
 from src.features.scoring import score_claims
 from src.ingestion.load_data import load_claims
@@ -51,10 +51,13 @@ def test_required_question_contexts_stay_compact():
         context, sources = build_context(question, df, claim_id=claim_id)
         assert expected_source in sources
         assert len(context) <= 1800
+        assert context.startswith("objetivo=")
+        assert "formato=Lectura|Evidencia|Impacto|Validacion" in context.splitlines()[0]
 
 
 def test_ai_provider_selector_uses_gemini_only_without_credentials(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "your_gemini_api_key_here")
+    monkeypatch.setenv("LOCAL_LLM_ENABLED", "false")
     answer, provider = ask_ai_model("Resume los riesgos", "total_siniestros=10", "local")
 
     assert provider == "gemini"
@@ -63,6 +66,7 @@ def test_ai_provider_selector_uses_gemini_only_without_credentials(monkeypatch):
 
 def test_ai_provider_selector_ignores_openai_for_now(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "your_gemini_api_key_here")
+    monkeypatch.setenv("LOCAL_LLM_ENABLED", "false")
     answer, provider = ask_ai_model("Resume los riesgos", "total_siniestros=10", "openai")
 
     assert provider == "gemini"
@@ -75,6 +79,23 @@ def test_agent_context_uses_active_claim_id_for_generic_question():
 
     assert "id=SIN-0002" in context
     assert "claim_detail" in sources
+
+
+def test_agent_context_ignores_active_claim_for_plain_greeting():
+    df = _scored_claims()
+    context, sources = build_context("Hola", df, claim_id="SIN-0002")
+
+    assert "saludando" in context
+    assert sources == ["system"]
+
+
+def test_agent_answers_plain_greeting_with_options_without_ai():
+    df = _scored_claims()
+    response = answer_question("Hola", df, claim_id="SIN-0002")
+
+    assert response["provider"] == "system"
+    assert "Qué necesitas revisar" in response["answer"]
+    assert "Explicar el score" in response["answer"]
 
 
 def test_agent_context_infers_unique_yellow_claim_for_color_question():

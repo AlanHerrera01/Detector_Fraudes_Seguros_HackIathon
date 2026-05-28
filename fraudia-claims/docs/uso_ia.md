@@ -6,11 +6,12 @@ La solucion usa IA en dos niveles:
    - Si existe `etiqueta_fraude_simulada`, se usa `RandomForestClassifier`.
    - Si no existe etiqueta util, se puede usar deteccion de anomalias con `IsolationForest`.
 
-2. Agente conversacional con Gemini:
+2. Agente conversacional con Gemini y respaldo local opcional:
    - Responde preguntas del analista.
    - Explica casos de alto riesgo.
    - Resume proveedores, ciudades y casos prioritarios.
-   - Usa `gemini` como unico proveedor activo.
+   - Usa `gemini` como proveedor principal.
+   - Puede usar Qwen 2.5 3B local via Ollama si Gemini falla y `LOCAL_LLM_ENABLED=true`.
    - Mantiene lenguaje etico: alerta o posible fraude, no acusacion.
 
 3. Analisis NLP reproducible:
@@ -18,12 +19,27 @@ La solucion usa IA en dos niveles:
    - Detecta narrativa vaga, inconsistente o con terminos de alto riesgo.
    - Usa reglas transparentes para que la demo funcione aun sin credenciales.
 
-El agente conversacional no calcula el score final. El score lo calcula el backend para mantener trazabilidad. Si Gemini falla o no tiene credenciales, el backend devuelve un mensaje claro para corregir la configuracion.
+El agente conversacional no calcula el score final. El score lo calcula el backend para mantener trazabilidad. Si Gemini falla o no tiene credenciales, puede intentar Qwen local si esta habilitado.
 
 ## Proveedores conversacionales
 
 - `gemini`: usa `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_TIMEOUT_SECONDS` y `GEMINI_MAX_CONTEXT_CHARS`.
-- Futuras implementaciones comentadas en codigo: `github`, `openai` y `local`.
+- `local:qwen2.5:3b`: respaldo automatico con Ollama cuando `LOCAL_LLM_ENABLED=true`.
+- Futuras implementaciones comentadas en codigo: `github` y `openai`.
+
+Para usar Qwen local:
+
+```bash
+ollama run qwen2.5:3b
+```
+
+Y en `.env`:
+
+```text
+LOCAL_LLM_ENABLED=true
+LOCAL_LLM_MODEL=qwen2.5:3b
+LOCAL_LLM_ENDPOINT=http://127.0.0.1:11434/api/generate
+```
 
 El endpoint `POST /agent/query` acepta:
 

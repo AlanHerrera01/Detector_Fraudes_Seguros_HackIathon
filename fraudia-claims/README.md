@@ -2,7 +2,7 @@
 
 Backend para el reto **Detector de Posibles Fraudes en Siniestros usando Inteligencia Artificial**.
 
-La solucion genera alertas de revision, no acusaciones automaticas de fraude. Combina reglas de negocio, scoring de riesgo, un modelo de IA sencillo y un agente conversacional con Gemini para explicar resultados.
+La solucion genera alertas de revision, no acusaciones automaticas de fraude. Combina reglas de negocio, scoring de riesgo, un modelo de IA sencillo y un agente conversacional con Gemini para explicar resultados. Opcionalmente puede usar Qwen 2.5 3B local como respaldo via Ollama.
 
 ## Stack
 
@@ -12,6 +12,7 @@ La solucion genera alertas de revision, no acusaciones automaticas de fraude. Co
 - Pandas
 - Scikit-learn
 - Gemini API
+- Ollama + Qwen 2.5 3B opcional
 - Pytest
 
 ## Cumplimiento de requisitos minimos
@@ -45,6 +46,13 @@ Configura `GEMINI_API_KEY` en `.env` para usar el agente conversacional. Por aho
 ```text
 AI_PROVIDER=gemini
 GEMINI_API_KEY=tu_api_key
+```
+
+Para activar respaldo local con Qwen 2.5 3B, instala Ollama, ejecuta `ollama run qwen2.5:3b` y configura:
+
+```text
+LOCAL_LLM_ENABLED=true
+LOCAL_LLM_MODEL=qwen2.5:3b
 ```
 
 Para usar PostgreSQL, configura en `.env`:

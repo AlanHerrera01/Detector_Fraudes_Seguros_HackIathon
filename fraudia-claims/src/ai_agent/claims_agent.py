@@ -8,6 +8,8 @@ from src.ai_agent.gemini_service import ask_ai_model
 def answer_question(question: str, scored_claims: pd.DataFrame, provider: str | None = None, claim_id: str | None = None) -> dict:
     """Responde preguntas del analista usando solo contexto derivado del dataset."""
     context, sources = build_context(question, scored_claims, claim_id)
+    if sources == ["system"] and "saludando" in context:
+        return {"answer": _smalltalk_answer(), "sources": sources, "provider": "system"}
     answer, used_provider = ask_ai_model(question, context, provider)
     return {"answer": answer, "sources": sources, "provider": used_provider}
 
@@ -19,6 +21,13 @@ def build_context(question: str, scored_claims: pd.DataFrame, claim_id: str | No
     respuestas trazables a fuentes internas como ranking, top casos o resumen.
     """
     normalized = _normalize_question(question)
+
+    if _is_smalltalk(normalized):
+        context = (
+            "El usuario solo esta saludando o iniciando conversacion. "
+            "Responde cordialmente en una frase y ofrece ayuda con siniestros, proveedores, documentos, scores o alertas."
+        )
+        return context, ["system"]
 
     matched_id = str(claim_id).lower() if claim_id else _find_claim_id(normalized, scored_claims)
     if matched_id:
@@ -44,7 +53,7 @@ def build_context(question: str, scored_claims: pd.DataFrame, claim_id: str | No
             "No copies todo; interpreta los factores clave.\n"
             f"{_build_claim_compact_context(claim)}"
         )
-        return context, ["claim_detail", "rules_engine", "narrative_signals", "claims_scores"]
+        return _with_response_goal(context, "explicar_siniestro"), ["claim_detail", "rules_engine", "narrative_signals", "claims_scores"]
 
     inferred_claim = _infer_claim_from_risk_question(normalized, scored_claims)
     if inferred_claim is not None:
@@ -54,7 +63,7 @@ def build_context(question: str, scored_claims: pd.DataFrame, claim_id: str | No
             "Si hubo inferencia, dilo brevemente.\n"
             f"{_build_claim_compact_context(inferred_claim)}"
         )
-        return context, ["claim_detail", "rules_engine", "risk_thresholds", "claims_scores"]
+        return _with_response_goal(context, "explicar_siniestro"), ["claim_detail", "rules_engine", "risk_thresholds", "claims_scores"]
 
     if any(term in normalized for term in ["comite", "resumen ejecutivo", "presentar", "decision"]):
         top = scored_claims.sort_values("score_riesgo", ascending=False).head(5)
@@ -80,16 +89,16 @@ def build_context(question: str, scored_claims: pd.DataFrame, claim_id: str | No
                 "recomendacion: Priorizar revision humana de casos rojos y concentraciones por proveedor.",
             ]
         )
-        return context, ["portfolio_summary", "top_claims", "provider_ranking", "ethics_guardrail"]
+        return _with_response_goal(context, "resumen_ejecutivo"), ["portfolio_summary", "top_claims", "provider_ranking", "ethics_guardrail"]
 
     if any(term in normalized for term in ["recomienda", "revisar primero", "prioridad", "priorizar"]):
         top = scored_claims.sort_values("score_riesgo", ascending=False).head(10)
-        return _compact_claim_table(top, max_rows=10), ["top_claims", "claims_scores", "rules_engine"]
+        return _with_response_goal(_compact_claim_table(top, max_rows=10), "priorizar_revision"), ["top_claims", "claims_scores", "rules_engine"]
 
     if any(term in normalized for term in ["narrativa", "nlp", "descripcion", "texto"]):
         nlp = scored_claims[scored_claims["senales_narrativa"].apply(lambda value: len(value) > 0)]
         columns = ["id_siniestro", "beneficiario", "score_riesgo", "nivel_riesgo", "senales_narrativa"]
-        return _compact_table(nlp.sort_values("score_riesgo", ascending=False), columns, max_rows=10), ["narrative_signals", "claims_scores"]
+        return _with_response_goal(_compact_table(nlp.sort_values("score_riesgo", ascending=False), columns, max_rows=10), "senales_narrativas"), ["narrative_signals", "claims_scores"]
 
     if "ramo" in normalized or "ramos" in normalized:
         ramo_summary = (
@@ -104,7 +113,7 @@ def build_context(question: str, scored_claims: pd.DataFrame, claim_id: str | No
             .reset_index()
         )
         ramo_summary["porcentaje_sospechoso"] = (ramo_summary["casos_sospechosos"] / ramo_summary["total_casos"] * 100).round(2)
-        return _compact_table(ramo_summary.sort_values(["porcentaje_sospechoso", "score_promedio"], ascending=False), max_rows=10), ["line_of_business_summary", "claims_scores"]
+        return _with_response_goal(_compact_table(ramo_summary.sort_values(["porcentaje_sospechoso", "score_promedio"], ascending=False), max_rows=10), "ranking_ramos"), ["line_of_business_summary", "claims_scores"]
 
     if "proveedor" in normalized or "beneficiario" in normalized:
         ranking = (
@@ -118,7 +127,7 @@ def build_context(question: str, scored_claims: pd.DataFrame, claim_id: str | No
             .head(10)
             .reset_index()
         )
-        return _compact_table(ranking, max_rows=10), ["provider_ranking", "claims_scores"]
+        return _with_response_goal(_compact_table(ranking, max_rows=10), "ranking_proveedores"), ["provider_ranking", "claims_scores"]
 
     if "documento" in normalized or "documentos" in normalized or "faltan" in normalized:
         critical = scored_claims[
@@ -127,17 +136,17 @@ def build_context(question: str, scored_claims: pd.DataFrame, claim_id: str | No
         ].sort_values("score_riesgo", ascending=False)
         critical = critical.assign(alertas_clave=critical["alertas"].apply(_alert_codes))
         columns = ["id_siniestro", "beneficiario", "score_riesgo", "nivel_riesgo", "documentos_completos", "documentos_inconsistentes", "alertas_clave"]
-        return _compact_table(critical, columns, max_rows=10), ["document_review", "rules_engine", "claims_scores"]
+        return _with_response_goal(_compact_table(critical, columns, max_rows=10), "documentos_criticos"), ["document_review", "rules_engine", "claims_scores"]
 
     if any(term in normalized for term in ["monto", "montos", "atipico", "atípico"]):
         amount_cases = scored_claims.sort_values(["ratio_monto_suma", "monto_reclamado", "score_riesgo"], ascending=False)
         columns = ["id_siniestro", "beneficiario", "monto_reclamado", "suma_asegurada", "ratio_monto_suma", "score_riesgo", "nivel_riesgo"]
-        return _compact_table(amount_cases, columns, max_rows=10), ["amount_outliers", "claims_scores"]
+        return _with_response_goal(_compact_table(amount_cases, columns, max_rows=10), "montos_atipicos"), ["amount_outliers", "claims_scores"]
 
     if any(term in normalized for term in ["inicio de la poliza", "inicio de póliza", "inicio poliza", "vigencia"]):
         near_start = scored_claims.sort_values(["dias_desde_inicio_poliza", "score_riesgo"], ascending=[True, False])
         columns = ["id_siniestro", "id_poliza", "beneficiario", "dias_desde_inicio_poliza", "score_riesgo", "nivel_riesgo"]
-        return _compact_table(near_start, columns, max_rows=10), ["policy_timing", "rules_engine", "claims_scores"]
+        return _with_response_goal(_compact_table(near_start, columns, max_rows=10), "inicio_poliza"), ["policy_timing", "rules_engine", "claims_scores"]
 
     if "asegurado" in normalized or "asegurados" in normalized or "frecuencia" in normalized:
         insured = (
@@ -152,7 +161,7 @@ def build_context(question: str, scored_claims: pd.DataFrame, claim_id: str | No
             .reset_index()
         )
         insured["score_promedio"] = insured["score_promedio"].round(2)
-        return _compact_table(insured, max_rows=10), ["insured_frequency", "claims_scores"]
+        return _with_response_goal(_compact_table(insured, max_rows=10), "frecuencia_asegurados"), ["insured_frequency", "claims_scores"]
 
     if any(term in normalized for term in ["patron", "patrón", "patrones", "repiten", "repetidos"]):
         alert_counts: dict[str, int] = {}
@@ -173,12 +182,12 @@ def build_context(question: str, scored_claims: pd.DataFrame, claim_id: str | No
             ),
             "senales_narrativas": scored_claims["senales_narrativa"].explode().dropna().value_counts().head(10).to_dict(),
         }
-        return str(patterns), ["pattern_summary", "rules_engine", "narrative_signals", "provider_ranking"]
+        return _with_response_goal(str(patterns), "patrones_repetidos"), ["pattern_summary", "rules_engine", "narrative_signals", "provider_ranking"]
 
     if "mayor riesgo" in normalized or "top" in normalized or "10" in normalized:
         top = scored_claims.sort_values("score_riesgo", ascending=False).head(10)
         columns = ["id_siniestro", "beneficiario", "ciudad", "cobertura", "score_riesgo", "nivel_riesgo", "explicacion"]
-        return _compact_claim_table(top, max_rows=10), ["top_claims", "claims_scores", "rules_engine"]
+        return _with_response_goal(_compact_claim_table(top, max_rows=10), "top_riesgo"), ["top_claims", "claims_scores", "rules_engine"]
 
     if "ciudad" in normalized or "ciudades" in normalized:
         cities = (
@@ -187,7 +196,7 @@ def build_context(question: str, scored_claims: pd.DataFrame, claim_id: str | No
             .sort_values("score_promedio", ascending=False)
             .reset_index()
         )
-        return _compact_table(cities, max_rows=10), ["city_summary", "claims_scores"]
+        return _with_response_goal(_compact_table(cities, max_rows=10), "ranking_ciudades"), ["city_summary", "claims_scores"]
 
     summary = {
         "total_siniestros": int(len(scored_claims)),
@@ -196,7 +205,7 @@ def build_context(question: str, scored_claims: pd.DataFrame, claim_id: str | No
         "casos_verdes": int((scored_claims["nivel_riesgo"] == "verde").sum()),
         "score_promedio": round(float(scored_claims["score_riesgo"].mean()), 2),
     }
-    return "; ".join(f"{key}={value}" for key, value in summary.items()), ["portfolio_summary", "claims_scores"]
+    return _with_response_goal("; ".join(f"{key}={value}" for key, value in summary.items()), "resumen_portafolio"), ["portfolio_summary", "claims_scores"]
 
 
 def _find_claim_id(question: str, scored_claims: pd.DataFrame) -> str | None:
@@ -210,6 +219,38 @@ def _find_claim_id(question: str, scored_claims: pd.DataFrame) -> str | None:
 def _normalize_question(question: str) -> str:
     normalized = unicodedata.normalize("NFD", question.lower())
     return "".join(char for char in normalized if unicodedata.category(char) != "Mn")
+
+
+def _is_smalltalk(question: str) -> bool:
+    cleaned = question.strip(" .,!¡?¿")
+    greetings = {
+        "hola",
+        "buenas",
+        "buenos dias",
+        "buenas tardes",
+        "buenas noches",
+        "hey",
+        "hi",
+        "hello",
+        "gracias",
+        "ok",
+        "listo",
+    }
+    return cleaned in greetings
+
+
+def _smalltalk_answer() -> str:
+    return (
+        "Hola, soy el asistente de FraudIA. ¿Qué necesitas revisar?\n"
+        "- Explicar el score o semáforo de este siniestro.\n"
+        "- Ver los casos con mayor riesgo.\n"
+        "- Revisar proveedores, documentos, montos atípicos o patrones.\n"
+        "- Generar un resumen ejecutivo para comité."
+    )
+
+
+def _with_response_goal(context: str, goal: str) -> str:
+    return f"objetivo={goal}; formato=Lectura|Evidencia|Impacto|Validacion\n{context}"
 
 
 def _portfolio_metrics(scored_claims: pd.DataFrame) -> str:

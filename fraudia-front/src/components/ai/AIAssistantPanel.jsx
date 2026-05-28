@@ -9,7 +9,7 @@ const AI_PROVIDERS = [
 
 const INITIAL_MESSAGE = {
   from: 'assistant',
-  text: 'Hola. Preguntame sobre siniestros, proveedores, documentos o casos de mayor riesgo.',
+  text: 'Hola, soy el asistente de FraudIA. ¿Qué necesitas revisar?\n- Explicar el score o semáforo de este siniestro.\n- Ver los casos con mayor riesgo.\n- Revisar proveedores, documentos, montos atípicos o patrones.\n- Generar un resumen ejecutivo para comité.',
   sources: ['rules_engine', 'claims_scores'],
 }
 
@@ -23,6 +23,32 @@ function cleanAssistantText(text) {
 
 function providerName(provider) {
   return AI_PROVIDERS.find((item) => item.value === provider)?.label || provider || 'IA'
+}
+
+function shouldUseActiveClaim(question) {
+  const normalized = question
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+  const caseTerms = [
+    'este siniestro',
+    'este caso',
+    'caso activo',
+    'por que',
+    'porque',
+    'explica',
+    'explicame',
+    'alto riesgo',
+    'rojo',
+    'amarillo',
+    'verde',
+    'semaforo',
+    'score',
+    'alerta',
+    'marcado',
+    'nivel',
+  ]
+  return caseTerms.some((term) => normalized.includes(term))
 }
 
 export default function AIAssistantPanel() {
@@ -47,8 +73,9 @@ export default function AIAssistantPanel() {
     setInput('')
     setLoading(true)
     try {
-      const scopedQuestion = activeClaimId ? `[Caso activo ${activeClaimId}] ${question}` : question
-      const result = await api.queryAgent(scopedQuestion, aiProvider, activeClaimId)
+      const useActiveClaim = Boolean(activeClaimId && shouldUseActiveClaim(question))
+      const scopedQuestion = useActiveClaim ? `[Caso activo ${activeClaimId}] ${question}` : question
+      const result = await api.queryAgent(scopedQuestion, aiProvider, useActiveClaim ? activeClaimId : null)
       const answer = cleanAssistantText(result.answer) || 'No recibi una respuesta util de Gemini. Intenta de nuevo.'
       setMessages((current) => [
         ...current,
