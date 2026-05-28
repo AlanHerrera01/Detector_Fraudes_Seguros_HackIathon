@@ -30,19 +30,43 @@ def test_agent_context_supports_required_questions():
         assert expected_source in sources
 
 
-def test_ai_provider_selector_supports_local_without_credentials():
+def test_required_question_contexts_stay_compact():
+    df = _scored_claims()
+    questions = [
+        ("¿Cuáles son los 10 siniestros con mayor riesgo de posible fraude?", None, "top_claims"),
+        ("¿Por qué este siniestro fue marcado como alto riesgo?", "SIN-0002", "claim_detail"),
+        ("¿Qué proveedores concentran más alertas?", None, "provider_ranking"),
+        ("¿Qué ramos tienen mayor porcentaje de casos sospechosos?", None, "line_of_business_summary"),
+        ("¿Qué ciudades presentan mayor concentración de alertas?", None, "city_summary"),
+        ("¿Qué asegurados tienen mayor frecuencia de reclamos?", None, "insured_frequency"),
+        ("¿Qué documentos faltan en los casos críticos?", None, "document_review"),
+        ("¿Qué casos tienen montos atípicos?", None, "amount_outliers"),
+        ("¿Qué siniestros ocurrieron cerca del inicio de la póliza?", None, "policy_timing"),
+        ("¿Qué patrones se repiten en los reclamos sospechosos?", None, "pattern_summary"),
+        ("Genera un resumen ejecutivo de los casos críticos.", None, "portfolio_summary"),
+        ("Recomienda qué casos debería revisar primero el analista.", None, "top_claims"),
+    ]
+
+    for question, claim_id, expected_source in questions:
+        context, sources = build_context(question, df, claim_id=claim_id)
+        assert expected_source in sources
+        assert len(context) <= 1800
+
+
+def test_ai_provider_selector_uses_gemini_only_without_credentials(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "your_gemini_api_key_here")
     answer, provider = ask_ai_model("Resume los riesgos", "total_siniestros=10", "local")
 
-    assert provider == "local"
-    assert "revision" in answer.lower()
+    assert provider == "gemini"
+    assert "Gemini no esta configurado" in answer
 
 
-def test_ai_provider_selector_supports_openai_without_credentials(monkeypatch):
-    monkeypatch.setenv("OPENAI_API_KEY", "your_openai_api_key_here")
+def test_ai_provider_selector_ignores_openai_for_now(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "your_gemini_api_key_here")
     answer, provider = ask_ai_model("Resume los riesgos", "total_siniestros=10", "openai")
 
-    assert provider == "openai"
-    assert "OpenAI no esta configurado" in answer
+    assert provider == "gemini"
+    assert "Gemini no esta configurado" in answer
 
 
 def test_agent_context_uses_active_claim_id_for_generic_question():

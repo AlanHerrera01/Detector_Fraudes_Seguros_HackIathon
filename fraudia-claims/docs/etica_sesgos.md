@@ -16,7 +16,7 @@ usarse para rechazar automaticamente un siniestro.
 - Score explicable con reglas y mensajes visibles.
 - Semaforo operativo para priorizar, no para decidir automaticamente.
 - Nota etica en las explicaciones ejecutivas.
-- Fallback local cuando no existe API key de Gemini.
+- Mensaje claro de configuracion cuando no existe API key de Gemini.
 - Recomendacion de revision humana antes de cualquier accion adversa.
 
 ## Buenas practicas para uso real

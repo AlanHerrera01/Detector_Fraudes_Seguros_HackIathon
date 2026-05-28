@@ -8,25 +8,11 @@ load_dotenv()
 
 
 SYSTEM_INSTRUCTION = """
-Eres FraudIA, un analista senior de siniestros de seguros conversando con otro humano.
-Responde en espanol natural, cercano y profesional, como si estuvieras sentado al lado del analista.
-Tu respuesta debe sentirse inteligente y util, no como una tabla copiada.
-Cuando la pregunta sea analitica, responde en maximo 8 lineas utiles:
-1. Lectura del caso o hallazgo: que estas viendo y cual es el riesgo.
-2. Razonamiento con evidencia: explica por que llegas a esa conclusion usando campos concretos del contexto.
-3. Siguiente accion: que deberia revisar el analista y por que.
-Si el contexto incluye una ficha de siniestro y el usuario pregunta por color, semaforo, nivel o por que salio alto/amarillo/rojo/verde, responde como especialista tecnico:
-- Indica el umbral del semaforo: verde 0-40, amarillo 41-75, rojo 76-100.
-- Indica el score exacto del caso y por que cae en ese rango.
-- Desglosa puntos de reglas y puntos IA/ML aproximados si estan en el contexto.
-- Cita las reglas activadas mas relevantes por codigo y nombre.
-- Cierra con validacion recomendada concreta.
-No afirmes fraude confirmado. Usa lenguaje como posible fraude, alerta, indicio o requiere revision.
-Responde solo con base en el contexto entregado. Si faltan datos, dilo con claridad y pregunta que dato ayudaria.
-Da explicaciones directas: suficientes para entender que paso, por que importa y que hacer despues, sin extenderte demasiado.
-Evita sonar robotico, legalista o excesivamente tecnico. No inventes cifras ni casos fuera del contexto.
-No uses Markdown complejo, asteriscos de negrilla ni backticks. Usa listas cortas con guiones simples si ayuda.
-Si el usuario pregunta "por que", "que paso" o "explica", prioriza la causalidad: senal detectada -> impacto en el score -> validacion recomendada.
+Eres FraudIA, analista de siniestros. Responde en espanol claro y breve.
+Usa solo el contexto entregado; no inventes datos ni confirmes fraude.
+Explica en maximo 5 lineas: hallazgo, evidencia concreta y siguiente validacion.
+Si preguntan por semaforo, usa: verde 0-40, amarillo 41-75, rojo 76-100.
+No uses Markdown complejo; listas cortas con guiones simples estan bien.
 """
 
 
@@ -35,10 +21,11 @@ def ask_gemini(question: str, context: str) -> str:
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
     timeout_seconds = int(os.getenv("GEMINI_TIMEOUT_SECONDS", "8"))
+    max_context_chars = int(os.getenv("GEMINI_MAX_CONTEXT_CHARS", "3500"))
     verify_ssl = os.getenv("GEMINI_VERIFY_SSL", "true").strip().lower() not in {"0", "false", "no"}
 
     if not api_key or api_key == "your_gemini_api_key_here":
-        return "Gemini no esta configurado. Selecciona otra IA o agrega GEMINI_API_KEY en el backend."
+        return "Gemini no esta configurado. Agrega GEMINI_API_KEY en el backend."
 
     try:
         import requests
@@ -46,6 +33,7 @@ def ask_gemini(question: str, context: str) -> str:
         if not verify_ssl:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+        context = _compact_context(context, max_context_chars)
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
         payload = {
             "system_instruction": {"parts": [{"text": SYSTEM_INSTRUCTION}]},
@@ -56,8 +44,7 @@ def ask_gemini(question: str, context: str) -> str:
                         {
                             "text": (
                                 f"Pregunta del analista: {question}\n\n"
-                                "Usa el contexto para responder con explicacion causal. "
-                                "No copies la tabla sin interpretarla; convierte los datos en una lectura de negocio.\n\n"
+                                "Responde breve con base en este contexto:\n"
                                 f"Contexto disponible:\n{context}"
                             )
                         }
@@ -85,18 +72,26 @@ def ask_gemini(question: str, context: str) -> str:
         parts = data["candidates"][0]["content"]["parts"]
         return "\n".join(part.get("text", "") for part in parts).strip()
     except requests.Timeout:
-        return f"Gemini tardo mas de {timeout_seconds} segundos. Selecciona otra IA e intenta de nuevo."
+        return f"Gemini tardo mas de {timeout_seconds} segundos. Intenta de nuevo."
     except requests.HTTPError as exc:
         status = exc.response.status_code if exc.response is not None else "sin_status"
         detail = exc.response.text[:300] if exc.response is not None else "sin_detalle"
-        return f"Gemini no pudo responder ahora (HTTP {status}). Selecciona otra IA e intenta de nuevo. Detalle: {detail}"
+        return f"Gemini no pudo responder ahora (HTTP {status}). Detalle: {detail}"
     except requests.RequestException as exc:
-        return f"No fue posible conectar con Gemini ({type(exc).__name__}). Selecciona otra IA e intenta de nuevo."
+        return f"No fue posible conectar con Gemini ({type(exc).__name__})."
     except Exception as exc:
-        return f"No fue posible consultar Gemini ({type(exc).__name__}). Selecciona otra IA e intenta de nuevo."
+        return f"No fue posible consultar Gemini ({type(exc).__name__})."
+
+
+def _compact_context(context: str, max_chars: int) -> str:
+    """Recorta contexto largo para mantener pequeno el prompt enviado a Gemini."""
+    if max_chars <= 0 or len(context) <= max_chars:
+        return context
+    return context[:max_chars].rstrip() + "\n[contexto recortado]"
 
 
 def ask_github_models(question: str, context: str) -> tuple[str, str]:
+    # FUTURA IMPLEMENTACION: proveedor desactivado mientras la app usa solo Gemini.
     """Consulta GitHub Models si hay token."""
     token = os.getenv("GITHUB_MODELS_TOKEN", "").strip() or os.getenv("GITHUB_TOKEN", "").strip()
     model_name = os.getenv("GITHUB_MODELS_MODEL", "openai/gpt-5")
@@ -173,6 +168,7 @@ def ask_github_models(question: str, context: str) -> tuple[str, str]:
 
 
 def ask_openai(question: str, context: str) -> tuple[str, str]:
+    # FUTURA IMPLEMENTACION: proveedor desactivado mientras la app usa solo Gemini.
     """Consulta OpenAI Responses API si hay API key."""
     api_key = os.getenv("OPENAI_API_KEY", "").strip()
     model_name = os.getenv("OPENAI_MODEL", "gpt-5.2").strip()
@@ -307,29 +303,20 @@ def _format_error_info(error_info: dict) -> str:
 
 
 def ask_ai_model(question: str, context: str, provider: str | None = None) -> tuple[str, str]:
-    """Selecciona proveedor conversacional y devuelve respuesta + proveedor usado."""
-    selected = (provider or os.getenv("AI_PROVIDER", "gemini")).strip().lower()
-    aliases = {
-        "google": "gemini",
-        "github_models": "github",
-        "github-models": "github",
-        "openai-api": "openai",
-        "openai_api": "openai",
-        "gpt": "openai",
-        "chatgpt": "openai",
-        "gpt5": "github",
-        "gpt-5": "github",
-        "local_fallback": "local",
-        "fallback": "local",
-    }
-    selected = aliases.get(selected, selected)
+    """Usa Gemini como unico proveedor conversacional activo."""
+    _ = provider
 
-    if selected == "openai":
-        return ask_openai(question, context)
-    if selected == "github":
-        return ask_github_models(question, context)
-    if selected == "local":
-        return fallback_answer(question, context), "local"
+    # FUTURA IMPLEMENTACION: reactivar selector multi-proveedor si se necesita.
+    # selected = (provider or os.getenv("AI_PROVIDER", "gemini")).strip().lower()
+    # aliases = {"google": "gemini", "openai_api": "openai", "github_models": "github"}
+    # selected = aliases.get(selected, selected)
+    # if selected == "openai":
+    #     return ask_openai(question, context)
+    # if selected == "github":
+    #     return ask_github_models(question, context)
+    # if selected == "local":
+    #     return fallback_answer(question, context), "local"
+
     return ask_gemini(question, context), "gemini"
 
 
