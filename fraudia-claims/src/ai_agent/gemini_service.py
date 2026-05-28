@@ -149,21 +149,109 @@ def ask_github_models(question: str, context: str) -> tuple[str, str]:
         response.raise_for_status()
         data = response.json()
         content = _extract_chat_content(data)
-        return content or "GitHub Models no devolvio contenido. Intenta de nuevo con una pregunta mas especifica.", "github"
+        return content or f"{model_name} no devolvio contenido. Intenta de nuevo con una pregunta mas especifica.", model_name
     except requests.Timeout:
-        return f"GitHub Models tardo mas de {timeout_seconds} segundos. Selecciona otra IA e intenta de nuevo.", "github"
+        return f"{model_name} en {endpoint} tardo mas de {timeout_seconds} segundos. Selecciona otra IA e intenta de nuevo.", model_name
     except requests.HTTPError as exc:
         status = exc.response.status_code if exc.response is not None else "sin_status"
         detail = exc.response.text[:300] if exc.response is not None else "sin_detalle"
+        # Intenta extraer mensaje real de la API
+        try:
+            error_json = exc.response.json() if exc.response is not None else {}
+            api_message = error_json.get("error") or error_json.get("message") or str(error_json)
+        except Exception:
+            api_message = detail
         if status == 429:
-            return "GitHub Models GPT-5 alcanzo su limite de uso. Selecciona otra IA e intenta de nuevo.", "github"
+            return f"{model_name} en {endpoint} alcanzó su límite de uso. Mensaje API: {api_message}", model_name
         if status == 403:
-            return "GitHub Models GPT-5 no esta disponible con este token. Selecciona otra IA e intenta de nuevo.", "github"
-        return f"GitHub Models GPT-5 no pudo responder ahora (HTTP {status}). Selecciona otra IA e intenta de nuevo.", "github"
+            return f"{model_name} en {endpoint} no está disponible con este token. Mensaje API: {api_message}", model_name
+        return f"{model_name} en {endpoint} no pudo responder ahora (HTTP {status}). Mensaje API: {api_message}", model_name
     except requests.RequestException as exc:
-        return f"No fue posible conectar con GitHub Models ({type(exc).__name__}).", "github"
+        return f"No fue posible conectar con {model_name} en {endpoint} ({type(exc).__name__}).", model_name
     except Exception as exc:
-        return f"No fue posible consultar GitHub Models ({type(exc).__name__}).", "github"
+        return f"No fue posible consultar {model_name} en {endpoint} ({type(exc).__name__}).", model_name
+
+
+def ask_openai(question: str, context: str) -> tuple[str, str]:
+    """Consulta OpenAI Responses API si hay API key."""
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    model_name = os.getenv("OPENAI_MODEL", "gpt-5.2").strip()
+    timeout_seconds = int(os.getenv("OPENAI_TIMEOUT_SECONDS", "45"))
+    max_output_tokens = int(os.getenv("OPENAI_MAX_OUTPUT_TOKENS", "1200"))
+    verify_ssl = os.getenv("OPENAI_VERIFY_SSL", "true").strip().lower() not in {"0", "false", "no"}
+    endpoint = os.getenv("OPENAI_ENDPOINT", "https://api.openai.com/v1/responses").strip()
+
+    if not api_key or api_key == "your_openai_api_key_here":
+        return "OpenAI no esta configurado. Agrega un OPENAI_API_KEY real en el .env del backend.", "openai"
+
+    try:
+        import requests
+
+        if not verify_ssl:
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+        payload = {
+            "model": model_name,
+            "instructions": SYSTEM_INSTRUCTION,
+            "input": (
+                f"Pregunta del analista: {question}\n\n"
+                "Responde obligatoriamente en espanol, con tono natural y util. "
+                "Usa el contexto para responder con explicacion causal. "
+                "No copies la tabla sin interpretarla; convierte los datos en una lectura de negocio.\n\n"
+                f"Contexto disponible:\n{context}"
+            ),
+            "max_output_tokens": max_output_tokens,
+        }
+        session = requests.Session()
+        session.trust_env = False
+        response = session.post(
+            endpoint,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=timeout_seconds,
+            verify=verify_ssl,
+        )
+        response.raise_for_status()
+        data = response.json()
+        content = _extract_openai_response_text(data)
+        return content or "OpenAI no devolvio contenido. Intenta de nuevo con una pregunta mas especifica.", "openai"
+    except requests.Timeout:
+        return f"OpenAI tardo mas de {timeout_seconds} segundos. Selecciona otra IA e intenta de nuevo.", "openai"
+    except requests.HTTPError as exc:
+        status = exc.response.status_code if exc.response is not None else "sin_status"
+        error_info = _extract_error_info(exc.response)
+        if status == 401:
+            return "OpenAI rechazo la API key. Verifica OPENAI_API_KEY en el .env del backend.", "openai"
+        if status == 429:
+            code = error_info.get("code") or error_info.get("type")
+            if code == "insufficient_quota":
+                return (
+                    "OpenAI respondio insufficient_quota: la API key es valida, pero el proyecto u organizacion "
+                    "no tiene cuota/credito disponible o alcanzo su limite de gasto. Revisa Billing, Usage y Limits "
+                    "en el proyecto de OpenAI asociado a esa key."
+                ), "openai"
+            if code == "rate_limit_exceeded":
+                return (
+                    "OpenAI respondio rate_limit_exceeded: la key funciona, pero se enviaron demasiadas solicitudes "
+                    "o tokens para el limite actual del proyecto/modelo. Espera un momento o baja el uso."
+                ), "openai"
+            return (
+                "OpenAI devolvio HTTP 429. Puede ser cuota, limite de gasto o rate limit del proyecto/modelo. "
+                f"Detalle: {_format_error_info(error_info)}"
+            ), "openai"
+        if status == 403:
+            return (
+                "OpenAI rechazo el acceso al recurso solicitado. Verifica que el proyecto de la API key tenga "
+                f"acceso al modelo {model_name}. Detalle: {_format_error_info(error_info)}"
+            ), "openai"
+        return f"OpenAI no pudo responder ahora (HTTP {status}). Detalle: {_format_error_info(error_info)}", "openai"
+    except requests.RequestException as exc:
+        return f"No fue posible conectar con OpenAI ({type(exc).__name__}).", "openai"
+    except Exception as exc:
+        return f"No fue posible consultar OpenAI ({type(exc).__name__}).", "openai"
 
 
 def _extract_chat_content(data: dict) -> str:
@@ -183,6 +271,41 @@ def _extract_chat_content(data: dict) -> str:
     return str(content or "").strip()
 
 
+def _extract_openai_response_text(data: dict) -> str:
+    """Extrae texto de Responses API tolerando variaciones del payload."""
+    if isinstance(data.get("output_text"), str):
+        return data["output_text"].strip()
+
+    parts = []
+    for item in data.get("output", []) or []:
+        for content in item.get("content", []) or []:
+            if isinstance(content, dict):
+                text = content.get("text")
+                if isinstance(text, str):
+                    parts.append(text)
+    return "\n".join(part for part in parts if part.strip()).strip()
+
+
+def _extract_error_info(response) -> dict:
+    if response is None:
+        return {}
+    try:
+        data = response.json()
+    except ValueError:
+        return {"message": response.text[:300] if getattr(response, "text", None) else ""}
+    error = data.get("error", data)
+    return error if isinstance(error, dict) else {"message": str(error)}
+
+
+def _format_error_info(error_info: dict) -> str:
+    fields = []
+    for key in ["code", "type", "message"]:
+        value = error_info.get(key)
+        if value:
+            fields.append(f"{key}={str(value)[:180]}")
+    return "; ".join(fields) or "sin detalle"
+
+
 def ask_ai_model(question: str, context: str, provider: str | None = None) -> tuple[str, str]:
     """Selecciona proveedor conversacional y devuelve respuesta + proveedor usado."""
     selected = (provider or os.getenv("AI_PROVIDER", "gemini")).strip().lower()
@@ -190,6 +313,10 @@ def ask_ai_model(question: str, context: str, provider: str | None = None) -> tu
         "google": "gemini",
         "github_models": "github",
         "github-models": "github",
+        "openai-api": "openai",
+        "openai_api": "openai",
+        "gpt": "openai",
+        "chatgpt": "openai",
         "gpt5": "github",
         "gpt-5": "github",
         "local_fallback": "local",
@@ -197,6 +324,8 @@ def ask_ai_model(question: str, context: str, provider: str | None = None) -> tu
     }
     selected = aliases.get(selected, selected)
 
+    if selected == "openai":
+        return ask_openai(question, context)
     if selected == "github":
         return ask_github_models(question, context)
     if selected == "local":

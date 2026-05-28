@@ -31,6 +31,7 @@ const SUGGESTIONS = [
 
 const AI_PROVIDERS = [
   { value: 'gemini', label: 'Gemini' },
+  { value: 'openai', label: 'OpenAI GPT' },
   { value: 'github', label: 'GitHub Models GPT-5' },
   { value: 'local', label: 'Local' },
 ]

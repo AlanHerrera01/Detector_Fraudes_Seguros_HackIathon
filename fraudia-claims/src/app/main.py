@@ -49,7 +49,21 @@ class AgentQuery(BaseModel):
     claim_id: str | None = None
 
 
-SUPPORTED_AI_PROVIDERS = {"gemini", "google", "github", "github_models", "github-models", "local", "local_fallback", "fallback"}
+SUPPORTED_AI_PROVIDERS = {
+    "gemini",
+    "google",
+    "github",
+    "github_models",
+    "github-models",
+    "openai",
+    "openai_api",
+    "openai-api",
+    "gpt",
+    "chatgpt",
+    "local",
+    "local_fallback",
+    "fallback",
+}
 
 
 @app.on_event("startup")
@@ -559,5 +573,5 @@ def agent_query(payload: AgentQuery) -> dict:
     if not payload.question.strip():
         raise HTTPException(status_code=400, detail="La pregunta no puede estar vacia.")
     if payload.provider and payload.provider.strip().lower() not in SUPPORTED_AI_PROVIDERS:
-        raise HTTPException(status_code=400, detail="Proveedor de IA no soportado. Usa gemini, github o local.")
+        raise HTTPException(status_code=400, detail="Proveedor de IA no soportado. Usa gemini, github, openai o local.")
     return answer_question(payload.question, get_scored_claims(), payload.provider, payload.claim_id)

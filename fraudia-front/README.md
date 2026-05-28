@@ -10,6 +10,8 @@ Copiar `.env.example` a `.env`:
 copy .env.example .env
 ```
 
+`fraudia-front/.env.example` contiene solo variables publicas de Vite. No pongas llaves de Gemini, OpenAI o GitHub Models aqui; esas credenciales van en `fraudia-claims/.env`.
+
 Variables:
 
 ```text
@@ -39,6 +41,17 @@ http://localhost:3000
 - Red de riesgo para proveedores, asegurados, vehiculos y ciudades.
 - Carga de archivos CSV o PDF.
 - Agente IA para consultas en lenguaje natural.
+
+## Proveedores IA
+
+El selector del agente permite usar:
+
+- Gemini
+- OpenAI GPT
+- GitHub Models GPT-5
+- Local
+
+Las credenciales se configuran en el `.env` del backend (`fraudia-claims/.env`).
 
 ## Carga de archivos
 
