@@ -31,9 +31,7 @@ const SUGGESTIONS = [
 
 const AI_PROVIDERS = [
   { value: 'gemini', label: 'Gemini' },
-  { value: 'openai', label: 'OpenAI GPT' },
-  { value: 'github', label: 'GitHub Models GPT-5' },
-  { value: 'local', label: 'Local' },
+  // Futura implementacion: OpenAI, GitHub Models y Local.
 ]
 
 const INITIAL_MESSAGE = {
@@ -117,7 +115,7 @@ export default function AIAgent() {
             <div style={avatarStyle}>IA</div>
             <div>
               <h2 style={{ margin: 0, fontSize: 26, color: '#fff' }}>Agente experto FraudIA</h2>
-              <p style={{ marginTop: 5, color: '#cbd5e1' }}>Analisis conversacional para siniestros, proveedores, narrativa y explicabilidad.</p>
+              <p style={{ marginTop: 5, color: '#cbd5e1' }}>Analisis conversacional con Gemini para siniestros, proveedores, narrativa y explicabilidad.</p>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

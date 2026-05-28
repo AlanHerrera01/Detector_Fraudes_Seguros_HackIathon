@@ -2,7 +2,7 @@
 
 Backend para el reto **Detector de Posibles Fraudes en Siniestros usando Inteligencia Artificial**.
 
-La solucion genera alertas de revision, no acusaciones automaticas de fraude. Combina reglas de negocio, scoring de riesgo, un modelo de IA sencillo y un agente conversacional configurable con Gemini, OpenAI, GitHub Models o fallback local para explicar resultados.
+La solucion genera alertas de revision, no acusaciones automaticas de fraude. Combina reglas de negocio, scoring de riesgo, un modelo de IA sencillo y un agente conversacional con Gemini para explicar resultados.
 
 ## Stack
 
@@ -11,7 +11,7 @@ La solucion genera alertas de revision, no acusaciones automaticas de fraude. Co
 - FastAPI
 - Pandas
 - Scikit-learn
-- Gemini API, OpenAI API o GitHub Models
+- Gemini API
 - Pytest
 
 ## Cumplimiento de requisitos minimos
@@ -40,14 +40,11 @@ copy .env.example .env
 
 `fraudia-claims/.env.example` es la plantilla segura y comentada. `fraudia-claims/.env` es privado, contiene credenciales reales y no debe subirse al repositorio.
 
-Configura `GEMINI_API_KEY` en `.env` si quieres usar Gemini. Para OpenAI, configura `OPENAI_API_KEY` y opcionalmente `OPENAI_MODEL` (por defecto `gpt-5.2`). Para GitHub Models, configura `GITHUB_MODELS_TOKEN` y deja `GITHUB_MODELS_MODEL=openai/gpt-5` para usar GPT-5 desde GitHub Models. Si no hay credenciales, el agente usa una respuesta local de respaldo.
-
-El proveedor por defecto se define con `AI_PROVIDER=gemini`, pero el frontend tambien permite elegir por consulta entre `gemini`, `openai`, `github` y `local`.
-
-Para demo sin credenciales externas, configura:
+Configura `GEMINI_API_KEY` en `.env` para usar el agente conversacional. Por ahora Gemini es el unico proveedor activo; OpenAI, GitHub Models y respuesta local quedan comentados como futuras implementaciones.
 
 ```text
-AI_PROVIDER=local
+AI_PROVIDER=gemini
+GEMINI_API_KEY=tu_api_key
 ```
 
 Para usar PostgreSQL, configura en `.env`:
@@ -105,7 +102,7 @@ Ejemplo de consulta al agente:
 ```json
 {
   "question": "Que proveedores concentran mas alertas rojas?",
-  "provider": "openai"
+  "provider": "gemini"
 }
 ```
 

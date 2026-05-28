@@ -6,11 +6,11 @@ La solucion usa IA en dos niveles:
    - Si existe `etiqueta_fraude_simulada`, se usa `RandomForestClassifier`.
    - Si no existe etiqueta util, se puede usar deteccion de anomalias con `IsolationForest`.
 
-2. Agente conversacional configurable:
+2. Agente conversacional con Gemini:
    - Responde preguntas del analista.
    - Explica casos de alto riesgo.
    - Resume proveedores, ciudades y casos prioritarios.
-   - Puede usar `gemini`, `github` o `local` por consulta.
+   - Usa `gemini` como unico proveedor activo.
    - Mantiene lenguaje etico: alerta o posible fraude, no acusacion.
 
 3. Analisis NLP reproducible:
@@ -18,20 +18,19 @@ La solucion usa IA en dos niveles:
    - Detecta narrativa vaga, inconsistente o con terminos de alto riesgo.
    - Usa reglas transparentes para que la demo funcione aun sin credenciales.
 
-El agente conversacional no calcula el score final. El score lo calcula el backend para mantener trazabilidad. Si el proveedor externo falla o no tiene credenciales, se usa una respuesta local de respaldo.
+El agente conversacional no calcula el score final. El score lo calcula el backend para mantener trazabilidad. Si Gemini falla o no tiene credenciales, el backend devuelve un mensaje claro para corregir la configuracion.
 
 ## Proveedores conversacionales
 
-- `gemini`: usa `GEMINI_API_KEY`, `GEMINI_MODEL` y `GEMINI_TIMEOUT_SECONDS`.
-- `github`: usa `GITHUB_MODELS_TOKEN`, `GITHUB_MODELS_MODEL=openai/gpt-5` y `GITHUB_MODELS_TIMEOUT_SECONDS`.
-- `local`: no llama servicios externos; genera una respuesta reproducible con el contexto interno.
+- `gemini`: usa `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_TIMEOUT_SECONDS` y `GEMINI_MAX_CONTEXT_CHARS`.
+- Futuras implementaciones comentadas en codigo: `github`, `openai` y `local`.
 
 El endpoint `POST /agent/query` acepta:
 
 ```json
 {
   "question": "Que proveedor concentra mas alertas rojas?",
-  "provider": "github"
+  "provider": "gemini"
 }
 ```
 

@@ -4,9 +4,7 @@ import useFraudData from '../../hooks/useFraudData'
 
 const AI_PROVIDERS = [
   { value: 'gemini', label: 'Gemini' },
-  { value: 'openai', label: 'OpenAI GPT' },
-  { value: 'github', label: 'GitHub Models GPT-5' },
-  { value: 'local', label: 'Local' },
+  // Futura implementacion: OpenAI, GitHub Models y Local.
 ]
 
 const INITIAL_MESSAGE = {
@@ -35,7 +33,7 @@ export default function AIAssistantPanel() {
   const [loading, setLoading] = useState(false)
   const [listening, setListening] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
-  const [aiProvider, setAiProvider] = useState('github')
+  const [aiProvider, setAiProvider] = useState('gemini')
   const speechSupported = useMemo(() => typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition), [])
   const activeClaimId = useMemo(() => {
     const match = location.pathname.match(/^\/siniestros\/([^/]+)/)
@@ -51,7 +49,7 @@ export default function AIAssistantPanel() {
     try {
       const scopedQuestion = activeClaimId ? `[Caso activo ${activeClaimId}] ${question}` : question
       const result = await api.queryAgent(scopedQuestion, aiProvider, activeClaimId)
-      const answer = cleanAssistantText(result.answer) || 'No recibi una respuesta util del modelo. Intenta de nuevo o cambia de modelo.'
+      const answer = cleanAssistantText(result.answer) || 'No recibi una respuesta util de Gemini. Intenta de nuevo.'
       setMessages((current) => [
         ...current,
         {
