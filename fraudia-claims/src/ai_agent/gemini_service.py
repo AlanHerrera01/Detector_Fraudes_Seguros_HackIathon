@@ -8,11 +8,13 @@ load_dotenv()
 
 
 SYSTEM_INSTRUCTION = """
-Eres FraudIA, analista de siniestros. Responde en espanol claro y breve.
+Eres FraudIA, analista de siniestros. Responde amable, claro y util.
 Usa solo el contexto entregado; no inventes datos ni confirmes fraude.
-Usa exactamente estas etiquetas: Lectura, Evidencia, Impacto, Validacion.
+Explica como a un analista: fluido, intuitivo y con criterio tecnico.
+Usa 5-7 frases breves, entre 130 y 180 palabras: lectura, evidencia y recomendacion.
+Incluye una frase tipo: Como analista, te recomiendo...
 Si hay semaforo: verde 0-40, amarillo 41-75, rojo 76-100.
-Maximo 5 lineas. No uses Markdown complejo.
+No uses Markdown complejo ni etiquetas rigidas.
 """
 
 
@@ -406,14 +408,30 @@ def ask_ai_model(question: str, context: str, provider: str | None = None) -> tu
     gemini_answer = ask_gemini(question, context)
     if _claim_answer_too_short(gemini_answer, context):
         return _fallback_claim_answer(context), "gemini"
+    if _structured_answer_incomplete(gemini_answer, context):
+        return _fallback_structured_answer(context), "gemini"
     if _local_llm_enabled() and _is_gemini_failure(gemini_answer):
         local_answer, local_provider = ask_local_qwen(question, context)
         if _claim_answer_too_short(local_answer, context):
             return _fallback_claim_answer(context), local_provider
+        if _structured_answer_incomplete(local_answer, context):
+            return _fallback_structured_answer(context), local_provider
         if not local_answer.lower().startswith("no fue posible"):
             return local_answer, local_provider
         return f"{gemini_answer}\n\nRespaldo local: {local_answer}", local_provider
     return gemini_answer, "gemini"
+
+
+def _structured_answer_incomplete(answer: str, context: str) -> bool:
+    if "formato=fluido_tecnico" not in context:
+        return False
+    if "ficha compacta del siniestro" in context.lower():
+        return False
+    clean = answer.strip()
+    if len(clean) < 180:
+        return True
+    lowered = clean.lower()
+    return not any(term in lowered for term in ["valid", "revis", "contrastar"])
 
 
 def _claim_answer_too_short(answer: str, context: str) -> bool:
@@ -425,6 +443,150 @@ def _claim_answer_too_short(answer: str, context: str) -> bool:
     required_terms = ["score", "regla", "valid"]
     lowered = clean.lower()
     return not all(term in lowered for term in required_terms)
+
+
+def _fallback_structured_answer(context: str) -> str:
+    goal = _context_goal(context)
+    rows = _context_rows(context)
+    if goal in {"ranking_ciudades", "ranking_proveedores", "ranking_ramos", "frecuencia_asegurados"}:
+        return _fallback_ranking_answer(goal, rows)
+    if goal in {"top_riesgo", "priorizar_revision"}:
+        return _fallback_top_claims_answer(rows)
+    if goal == "documentos_criticos":
+        return _fallback_document_answer(rows)
+    if goal == "montos_atipicos":
+        return _fallback_amount_answer(rows)
+    if goal == "inicio_poliza":
+        return _fallback_policy_timing_answer(rows)
+    if goal == "patrones_repetidos":
+        return (
+            "Se observan patrones repetidos de reglas, proveedores y senales narrativas en los casos sospechosos. "
+            "El contexto resume alertas frecuentes, proveedores prioritarios y senales NLP recurrentes. "
+            "Como analista, te recomiendo cruzar los codigos de alerta mas frecuentes con proveedor, narrativa y documentos."
+        )
+    if goal == "resumen_ejecutivo":
+        return _fallback_summary_answer(context)
+    return (
+        "El contexto muestra senales relevantes para priorizar revision. "
+        "Se usan score, nivel de riesgo, reglas y concentraciones del portafolio. "
+        "Como analista, te recomiendo contrastar documentos, fechas, proveedor y narrativa antes de decidir."
+    )
+
+
+def _context_goal(context: str) -> str:
+    first_line = context.splitlines()[0] if context else ""
+    match = re.search(r"objetivo=([^;]+)", first_line)
+    return match.group(1).strip() if match else ""
+
+
+def _context_rows(context: str) -> list[dict[str, str]]:
+    lines = [line for line in context.splitlines()[1:] if "|" in line]
+    if len(lines) < 2:
+        return []
+    headers = [part.strip() for part in lines[0].split("|")]
+    rows = []
+    for line in lines[1:4]:
+        values = [part.strip() for part in line.split("|")]
+        rows.append(dict(zip(headers, values)))
+    return rows
+
+
+def _fallback_ranking_answer(goal: str, rows: list[dict[str, str]]) -> str:
+    labels = {
+        "ranking_ciudades": ("ciudades", "ciudad", "Esa ciudad merece una mirada de concentracion: revisa si los casos comparten proveedor, cobertura o tipo de alerta."),
+        "ranking_proveedores": ("proveedores", "beneficiario", "Ahi conviene revisar los casos de mayor score de ese proveedor y validar documentos, fechas y narrativa."),
+        "ranking_ramos": ("ramos", "ramo", "Para ese ramo, revisa si las alertas se explican por volumen normal o por reglas repetidas en casos concretos."),
+        "frecuencia_asegurados": ("asegurados", "id_asegurado", "En ese asegurado vale la pena mirar historial, fechas de ocurrencia y si las reglas se repiten entre reclamos."),
+    }
+    subject, key, closing = labels.get(goal, ("grupos", "id", "Conviene revisar los casos de mayor score y contrastar documentos, fechas y proveedor."))
+    top = rows[0] if rows else {}
+    name = top.get(key, "el primer grupo")
+    total = top.get("total_casos", "N/D")
+    red = top.get("alertas_rojas") or top.get("casos_rojos") or "N/D"
+    score = top.get("score_promedio", "N/D")
+    return (
+        f"En {subject}, el foco principal esta en {name}: concentra {total} caso(s), {red} rojo(s) y un score promedio de {score}. "
+        f"No significa fraude confirmado, pero si marca un punto claro para priorizar revision porque concentra senales en un mismo frente operativo. "
+        f"Como analista, te recomiendo: {closing} "
+        "Tambien revisaria si los casos comparten reglas, fechas cercanas, documentos incompletos o una misma narrativa de reclamo."
+    )
+
+
+def _fallback_top_claims_answer(rows: list[dict[str, str]]) -> str:
+    top = rows[0] if rows else {}
+    return (
+        f"Yo empezaria por {top.get('id_siniestro', 'N/D')}: tiene score {top.get('score_riesgo', 'N/D')}, nivel {top.get('nivel_riesgo', 'N/D')} y varias alertas clave ({top.get('alertas_clave', 'N/D')}). "
+        f"Esta asociado a {top.get('beneficiario', 'N/D')} en {top.get('ciudad', 'N/D')}, con cobertura {top.get('cobertura', 'N/D')}. "
+        "La prioridad no viene de una sola senal, sino de la combinacion entre score alto, nivel de riesgo y reglas activadas. "
+        "Como analista, te recomiendo revisarlo primero y validar soportes, narrativa, fechas y documentos antes de decidir."
+    )
+
+
+def _fallback_document_answer(rows: list[dict[str, str]]) -> str:
+    top = rows[0] if rows else {}
+    return (
+        f"Hay casos criticos con documentos faltantes o inconsistentes; destaca {top.get('id_siniestro', 'N/D')}. "
+        f"En ese caso, documentos_completos={top.get('documentos_completos', 'N/D')}, documentos_inconsistentes={top.get('documentos_inconsistentes', 'N/D')} y alertas={top.get('alertas_clave', 'N/D')}. "
+        "Como analista, te recomiendo solicitar soportes, verificar consistencia documental y cruzar fechas/proveedor."
+    )
+
+
+def _fallback_amount_answer(rows: list[dict[str, str]]) -> str:
+    top = rows[0] if rows else {}
+    return (
+        f"El monto mas atipico aparece en {top.get('id_siniestro', 'N/D')}, con ratio monto/suma {top.get('ratio_monto_suma', 'N/D')}. "
+        f"El monto reclamado es {top.get('monto_reclamado', 'N/D')} frente a suma asegurada {top.get('suma_asegurada', 'N/D')} y score {top.get('score_riesgo', 'N/D')}. "
+        "Como analista, te recomiendo revisar avaluo, factura, cobertura contratada y soportes del dano."
+    )
+
+
+def _fallback_policy_timing_answer(rows: list[dict[str, str]]) -> str:
+    top = rows[0] if rows else {}
+    return (
+        f"{top.get('id_siniestro', 'N/D')} ocurrio cerca del inicio de la poliza. "
+        f"Registra {top.get('dias_desde_inicio_poliza', 'N/D')} dias desde inicio, score {top.get('score_riesgo', 'N/D')} y nivel {top.get('nivel_riesgo', 'N/D')}. "
+        "Como analista, te recomiendo contrastar fecha de vigencia, ocurrencia, reporte y soportes del evento."
+    )
+
+
+def _fallback_summary_answer(context: str) -> str:
+    metrics = {}
+    for part in context.splitlines()[2].split(";") if len(context.splitlines()) > 2 else []:
+        if "=" in part:
+            key, value = part.split("=", 1)
+            metrics[key.strip()] = value.strip()
+    top_rows = _section_rows(context, "top_casos:")
+    provider_rows = _section_rows(context, "proveedores_prioritarios:")
+    top_claim = top_rows[0] if top_rows else {}
+    top_provider = provider_rows[0] if provider_rows else {}
+    return (
+        f"El portafolio incluye {metrics.get('total', 'N/D')} siniestros, con {metrics.get('rojos', 'N/D')} rojos y {metrics.get('amarillos', 'N/D')} amarillos. "
+        f"El score promedio es {metrics.get('score_promedio', 'N/D')} y el caso mas critico es {top_claim.get('id_siniestro', 'N/D')} con score {top_claim.get('score_riesgo', 'N/D')} y nivel {top_claim.get('nivel_riesgo', 'N/D')}. "
+        f"Tambien conviene mirar la concentracion por proveedor: {top_provider.get('beneficiario', 'N/D')} registra {top_provider.get('total_casos', 'N/D')} caso(s), {top_provider.get('alertas_rojas', 'N/D')} rojo(s) y score promedio {top_provider.get('score_promedio', 'N/D')}. "
+        "Como analista, te recomiendo llevar a comite los casos rojos/amarillos con reglas activadas, documentos y narrativa revisados."
+    )
+
+
+def _section_rows(context: str, section_name: str) -> list[dict[str, str]]:
+    lines = context.splitlines()
+    try:
+        start = lines.index(section_name) + 1
+    except ValueError:
+        return []
+    section_lines = []
+    for line in lines[start:]:
+        if line.endswith(":") or line.startswith("recomendacion:"):
+            break
+        if "|" in line:
+            section_lines.append(line)
+    if len(section_lines) < 2:
+        return []
+    headers = [part.strip() for part in section_lines[0].split("|")]
+    rows = []
+    for line in section_lines[1:4]:
+        values = [part.strip() for part in line.split("|")]
+        rows.append(dict(zip(headers, values)))
+    return rows
 
 
 def fallback_answer(question: str, context: str) -> str:
@@ -475,8 +637,8 @@ def _fallback_claim_answer(context: str) -> str:
     alerts = field("principales_alertas", "sin alertas principales")
 
     return (
-        f"Lectura: el siniestro {claim_id} queda en {level} con score {score}; rojo aplica entre 76-100.\n"
-        f"Evidencia: reglas principales {alerts}; puntos reglas={rules_points} e IA/ML aprox={model_points}.\n"
-        "Impacto: la combinacion de senales lo vuelve prioritario para revision, no fraude confirmado.\n"
-        "Validacion: revisar documentos, tiempos de reporte, proveedor/beneficiario y narrativa antes de decidir."
+        f"Este caso queda en {level} porque el siniestro {claim_id} tiene score {score}; rojo aplica entre 76-100. "
+        f"Las senales mas relevantes son {alerts}, con {rules_points} puntos de reglas y aprox. {model_points} de IA/ML. "
+        "No confirma fraude, pero la suma de senales lo vuelve prioritario para revision humana. "
+        "Como analista, te recomiendo revisar documentos, fechas de reporte, proveedor/beneficiario y narrativa antes de decidir."
     )

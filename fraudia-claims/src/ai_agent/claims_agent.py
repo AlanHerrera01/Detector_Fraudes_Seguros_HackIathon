@@ -249,8 +249,19 @@ def _smalltalk_answer() -> str:
     )
 
 
+def _smalltalk_answer() -> str:
+    options = [
+        "Hola, soy el asistente de FraudIA. Te ayudo a entender alertas y priorizar revisiones. Que necesitas?",
+        "- Explicar por que un siniestro salio rojo, amarillo o verde.",
+        "- Ver los casos con mayor riesgo.",
+        "- Revisar proveedores, documentos faltantes, montos atipicos o patrones.",
+        "- Preparar un resumen ejecutivo para comite.",
+    ]
+    return "\n".join(options)
+
+
 def _with_response_goal(context: str, goal: str) -> str:
-    return f"objetivo={goal}; formato=Lectura|Evidencia|Impacto|Validacion\n{context}"
+    return f"objetivo={goal}; formato=fluido_tecnico\n{context}"
 
 
 def _portfolio_metrics(scored_claims: pd.DataFrame) -> str:

@@ -9,7 +9,7 @@ const AI_PROVIDERS = [
 
 const INITIAL_MESSAGE = {
   from: 'assistant',
-  text: 'Hola, soy el asistente de FraudIA. ¿Qué necesitas revisar?\n- Explicar el score o semáforo de este siniestro.\n- Ver los casos con mayor riesgo.\n- Revisar proveedores, documentos, montos atípicos o patrones.\n- Generar un resumen ejecutivo para comité.',
+  text: 'Hola, soy el asistente de FraudIA. Te ayudo a entender alertas y priorizar revisiones. ¿Qué necesitas?\n- Explicar por qué un siniestro salió rojo, amarillo o verde.\n- Ver los casos con mayor riesgo.\n- Revisar proveedores, documentos faltantes, montos atípicos o patrones.\n- Preparar un resumen ejecutivo para comité.',
   sources: ['rules_engine', 'claims_scores'],
 }
 

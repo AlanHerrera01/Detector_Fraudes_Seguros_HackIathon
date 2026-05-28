@@ -1,5 +1,5 @@
 from src.ai_agent.claims_agent import answer_question, build_context
-from src.ai_agent.gemini_service import ask_ai_model
+from src.ai_agent.gemini_service import _fallback_claim_answer, _fallback_structured_answer, _structured_answer_incomplete, ask_ai_model
 from src.features.scoring import score_claims
 from src.ingestion.load_data import load_claims
 
@@ -30,21 +30,21 @@ def test_agent_context_supports_required_questions():
         assert expected_source in sources
 
 
-def test_required_question_contexts_stay_compact():
+def test_required_question_contexts_stay_compact_and_structured():
     df = _scored_claims()
     questions = [
-        ("¿Cuáles son los 10 siniestros con mayor riesgo de posible fraude?", None, "top_claims"),
-        ("¿Por qué este siniestro fue marcado como alto riesgo?", "SIN-0002", "claim_detail"),
-        ("¿Qué proveedores concentran más alertas?", None, "provider_ranking"),
-        ("¿Qué ramos tienen mayor porcentaje de casos sospechosos?", None, "line_of_business_summary"),
-        ("¿Qué ciudades presentan mayor concentración de alertas?", None, "city_summary"),
-        ("¿Qué asegurados tienen mayor frecuencia de reclamos?", None, "insured_frequency"),
-        ("¿Qué documentos faltan en los casos críticos?", None, "document_review"),
-        ("¿Qué casos tienen montos atípicos?", None, "amount_outliers"),
-        ("¿Qué siniestros ocurrieron cerca del inicio de la póliza?", None, "policy_timing"),
-        ("¿Qué patrones se repiten en los reclamos sospechosos?", None, "pattern_summary"),
-        ("Genera un resumen ejecutivo de los casos críticos.", None, "portfolio_summary"),
-        ("Recomienda qué casos debería revisar primero el analista.", None, "top_claims"),
+        ("Cuales son los 10 siniestros con mayor riesgo de posible fraude?", None, "top_claims"),
+        ("Por que este siniestro fue marcado como alto riesgo?", "SIN-0002", "claim_detail"),
+        ("Que proveedores concentran mas alertas?", None, "provider_ranking"),
+        ("Que ramos tienen mayor porcentaje de casos sospechosos?", None, "line_of_business_summary"),
+        ("Que ciudades presentan mayor concentracion de alertas?", None, "city_summary"),
+        ("Que asegurados tienen mayor frecuencia de reclamos?", None, "insured_frequency"),
+        ("Que documentos faltan en los casos criticos?", None, "document_review"),
+        ("Que casos tienen montos atipicos?", None, "amount_outliers"),
+        ("Que siniestros ocurrieron cerca del inicio de la poliza?", None, "policy_timing"),
+        ("Que patrones se repiten en los reclamos sospechosos?", None, "pattern_summary"),
+        ("Genera un resumen ejecutivo de los casos criticos.", None, "portfolio_summary"),
+        ("Recomienda que casos deberia revisar primero el analista.", None, "top_claims"),
     ]
 
     for question, claim_id, expected_source in questions:
@@ -52,7 +52,7 @@ def test_required_question_contexts_stay_compact():
         assert expected_source in sources
         assert len(context) <= 1800
         assert context.startswith("objetivo=")
-        assert "formato=Lectura|Evidencia|Impacto|Validacion" in context.splitlines()[0]
+        assert "formato=fluido_tecnico" in context.splitlines()[0]
 
 
 def test_ai_provider_selector_uses_gemini_only_without_credentials(monkeypatch):
@@ -94,8 +94,8 @@ def test_agent_answers_plain_greeting_with_options_without_ai():
     response = answer_question("Hola", df, claim_id="SIN-0002")
 
     assert response["provider"] == "system"
-    assert "Qué necesitas revisar" in response["answer"]
-    assert "Explicar el score" in response["answer"]
+    assert "Que necesitas" in response["answer"]
+    assert "Explicar por que" in response["answer"]
 
 
 def test_agent_context_infers_unique_yellow_claim_for_color_question():
@@ -104,3 +104,39 @@ def test_agent_context_infers_unique_yellow_claim_for_color_question():
 
     assert "nivel=amarillo" in context
     assert "claim_detail" in sources
+
+
+def test_structured_fallback_repairs_incomplete_ranking_answer():
+    df = _scored_claims()
+    context, _ = build_context("Que ciudades presentan mayor concentracion de alertas?", df)
+    incomplete = "Lectura: Bogota presenta la mayor concentracion de alertas.\nEvidencia"
+
+    assert _structured_answer_incomplete(incomplete, context)
+    repaired = _fallback_structured_answer(context)
+    assert "ciudades" in repaired
+    assert "revision" in repaired
+    assert "fraude confirmado" in repaired
+
+
+def test_reference_answers_fit_intermediate_output_budget():
+    df = _scored_claims()
+    questions = [
+        ("Cuales son los 10 siniestros con mayor riesgo de posible fraude?", None),
+        ("Por que este siniestro fue marcado como alto riesgo?", "SIN-0002"),
+        ("Que proveedores concentran mas alertas?", None),
+        ("Que ramos tienen mayor porcentaje de casos sospechosos?", None),
+        ("Que ciudades presentan mayor concentracion de alertas?", None),
+        ("Que asegurados tienen mayor frecuencia de reclamos?", None),
+        ("Que documentos faltan en los casos criticos?", None),
+        ("Que casos tienen montos atipicos?", None),
+        ("Que siniestros ocurrieron cerca del inicio de la poliza?", None),
+        ("Que patrones se repiten en los reclamos sospechosos?", None),
+        ("Genera un resumen ejecutivo de los casos criticos.", None),
+        ("Recomienda que casos deberia revisar primero el analista.", None),
+    ]
+
+    for question, claim_id in questions:
+        context, sources = build_context(question, df, claim_id=claim_id)
+        answer = _fallback_claim_answer(context) if "claim_detail" in sources else _fallback_structured_answer(context)
+        approx_tokens = len(answer) / 4
+        assert 50 <= approx_tokens <= 230
