@@ -30,7 +30,7 @@ function RiskPill({ level }) {
 
 function Badge({ label, color }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 999, background: '#f8fafc', color, fontWeight: 700, textTransform: 'uppercase', fontSize: 11 }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 999, background: '#1f2937', color, fontWeight: 700, textTransform: 'uppercase', fontSize: 11 }}>
       <span style={{ width: 8, height: 8, borderRadius: 999, background: color }} />
       {label}
     </span>
@@ -39,7 +39,7 @@ function Badge({ label, color }) {
 
 function Panel({ children, style }) {
   return (
-    <section style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 12, padding: 20, ...style }}>
+    <section style={{ background: '#0f1a35', border: '1px solid #1e293b', borderRadius: 12, padding: 20, boxShadow: '0 0 15px rgba(96, 165, 250, 0.05)', ...style }}>
       {children}
     </section>
   )
@@ -239,7 +239,7 @@ export default function Dashboard() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 16 }}>
             <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', height: 20, borderRadius: 999, overflow: 'hidden', background: '#eef2f7' }}>
+              <div style={{ display: 'flex', height: 20, borderRadius: 999, overflow: 'hidden', background: '#1e293b' }}>
                 <div style={{ width: `${greenPct}%`, background: 'var(--risk-green)' }} />
                 <div style={{ width: `${yellowPct}%`, background: 'var(--risk-yellow)' }} />
                 <div style={{ width: `${redPct}%`, background: 'var(--risk-red)' }} />
@@ -339,7 +339,7 @@ export default function Dashboard() {
             {summary.top.map((item) => {
               const level = levelFromScore(item.score)
               return (
-                <button key={item.id_siniestro} onClick={() => nav(`/siniestros/${item.id_siniestro}`)} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 18, alignItems: 'center', background: '#f8fafc', border: '1px solid var(--border)', padding: 16, borderRadius: 12, textAlign: 'left' }}>
+                <button key={item.id_siniestro} onClick={() => nav(`/siniestros/${item.id_siniestro}`)} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 18, alignItems: 'center', background: '#0d1a35', border: '1px solid #1e293b', padding: 16, borderRadius: 12, textAlign: 'left' }}>
                   <div>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700 }}>{item.id_siniestro}</div>
                     <div style={{ color: 'var(--muted)', marginTop: 6 }}>{item.cobertura || 'Cobertura desconocida'} • {item.beneficiario || 'Proveedor'} • {item.ramo || 'Categoria'}</div>
@@ -364,7 +364,7 @@ export default function Dashboard() {
           </div>
           <div style={{ display: 'grid', gap: 12, marginTop: 14 }}>
             {networks.slice(0, 5).map((item) => (
-              <div key={item.beneficiario} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center', background: '#fafbff', borderRadius: 12, padding: 14, border: '1px solid #eef2f7' }}>
+              <div key={item.beneficiario} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center', background: '#0d1a35', borderRadius: 12, padding: 14, border: '1px solid #1e293b' }}>
                 <div>
                   <strong>{item.beneficiario}</strong>
                   <div style={{ color: 'var(--muted)', marginTop: 6, fontSize: 13 }}>
@@ -386,7 +386,7 @@ export default function Dashboard() {
 
 function MiniStat({ label, value, color }) {
   return (
-    <div style={{ display: 'grid', gap: 6, padding: 14, background: '#f8fafc', borderRadius: 12, border: '1px solid var(--border)' }}>
+    <div style={{ display: 'grid', gap: 6, padding: 14, background: '#0d1a35', borderRadius: 12, border: '1px solid #1e293b', boxShadow: '0 0 10px rgba(96, 165, 250, 0.05)' }}>
       <span style={{ fontSize: 13, color: 'var(--muted)' }}>{label}</span>
       <strong style={{ color, fontSize: 18 }}>{value}</strong>
     </div>
@@ -395,24 +395,25 @@ function MiniStat({ label, value, color }) {
 
 function SummaryLine({ label, value }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: 14, borderRadius: 12, background: '#f8fafc', border: '1px solid var(--border)' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: 14, borderRadius: 12, background: '#0d1a35', border: '1px solid #1e293b', boxShadow: '0 0 10px rgba(96, 165, 250, 0.05)' }}>
       <span style={{ color: 'var(--muted)' }}>{label}</span>
-      <strong>{value}</strong>
+      <strong style={{ color: '#10b981' }}>{value}</strong>
     </div>
   )
 }
 
 const panelButtonStyle = {
-  background: '#eef2f7',
-  color: '#111827',
+  background: '#1f2937',
+  color: '#60a5fa',
   padding: '8px 12px',
   fontSize: 13,
   fontWeight: 700,
   borderRadius: 10,
-  border: '1px solid #dbeafe',
+  border: '1px solid #374151',
   whiteSpace: 'nowrap',
   flex: '0 0 auto',
-  transition: 'transform 180ms ease, background 180ms ease',
+  transition: 'all 180ms ease',
+  boxShadow: '0 0 8px rgba(96, 165, 250, 0.1)',
 }
 
 const panelHeaderStyle = {
@@ -424,13 +425,13 @@ const panelHeaderStyle = {
 }
 
 function PieChart({ data, labelKey, valueKey }) {
-  const colors = ['#2563eb', '#7c3aed', '#06b6d4', '#0d9488', '#ea580c', '#dc2626', '#d97706', '#0891b2', '#4f46e5', '#4338ca']
+  const colors = ['#60a5fa', '#34d399', '#fbbf24', '#f97316', '#8b5cf6', '#ec4899', '#14b8a6', '#6366f1', '#f43f5e', '#a855f7']
   const validData = data && data.length > 0 ? data : []
   const total = validData.reduce((sum, item) => sum + Number(item[valueKey] || 0), 0)
   
   if (validData.length === 0 || total === 0) {
     return (
-      <div style={{ display: 'grid', placeItems: 'center', gap: 12, marginTop: 14, minHeight: 200, background: '#f8fafc', borderRadius: 12, padding: 20 }}>
+      <div style={{ display: 'grid', placeItems: 'center', gap: 12, marginTop: 14, minHeight: 200, background: '#0d1a35', borderRadius: 12, padding: 20, border: '1px solid #1e293b' }}>
         <div style={{ fontSize: 48 }}>📊</div>
         <div style={{ color: 'var(--muted)', textAlign: 'center', fontSize: 13 }}>No hay datos para mostrar en este gráfico.</div>
       </div>
@@ -518,7 +519,7 @@ function BarChart({ data, labelKey, valueKey, color }) {
               <span style={{ color: 'var(--muted)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item[labelKey]}</span>
               <strong>{value}</strong>
             </div>
-            <div style={{ height: 12, width: '100%', background: '#eef2f7', borderRadius: 999, overflow: 'hidden' }}>
+            <div style={{ height: 12, width: '100%', background: '#1e293b', borderRadius: 999, overflow: 'hidden' }}>
               <div style={{ width, height: '100%', borderRadius: 999, background: color }} />
             </div>
           </div>
@@ -540,7 +541,7 @@ function BreakdownChart({ items, color }) {
               <span>{item.label}</span>
               <span>{item.count}</span>
             </div>
-            <div style={{ height: 10, width: '100%', background: '#eef2f7', borderRadius: 999, overflow: 'hidden' }}>
+            <div style={{ height: 10, width: '100%', background: '#1e293b', borderRadius: 999, overflow: 'hidden' }}>
               <div style={{ width: `${width}%`, height: '100%', borderRadius: 999, background: color }} />
             </div>
           </div>
