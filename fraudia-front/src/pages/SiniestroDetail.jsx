@@ -9,19 +9,19 @@ const ALERT_GROUPS = [
   {
     key: 'rf',
     title: 'RF - Reglas fuertes',
-    subtitle: 'Miden senales criticas de fraude operativo: documentos alterados, listas restrictivas, perdida total por robo o dinamicas de alto riesgo.',
+    subtitle: 'Documentos alterados, listas restrictivas, perdida total por robo o dinamicas de alto riesgo.',
     color: 'var(--risk-red)',
   },
   {
     key: 's',
     title: 'S - Senales de negocio',
-    subtitle: 'Miden comportamientos atipicos: fechas cercanas a vigencia, reporte tardio, frecuencia de reclamos, proveedor recurrente o monto elevado.',
+    subtitle: 'Fechas cercanas a vigencia, reporte tardio, frecuencia, proveedor recurrente o monto elevado.',
     color: 'var(--risk-yellow)',
   },
   {
     key: 'nlp',
-    title: 'NLP - Narrativa del reclamo',
-    subtitle: 'Mide senales del texto libre: relato vago, inconsistente, terminos sensibles o combinaciones que requieren validacion documental.',
+    title: 'NLP - Narrativa',
+    subtitle: 'Relato vago, inconsistente, terminos sensibles o falta de soporte narrativo.',
     color: '#0ea5e9',
   },
 ]
@@ -41,6 +41,61 @@ function groupAlerts(alerts = []) {
   }))
 }
 
+function riskTheme(level = 'verde') {
+  if (level === 'rojo') {
+    return {
+      label: 'Revision especializada',
+      badge: 'Alto riesgo',
+      color: 'var(--risk-red)',
+      soft: '#fef2f2',
+      tint: '#fff7f7',
+      border: '#fecaca',
+    }
+  }
+  if (level === 'amarillo') {
+    return {
+      label: 'Revision documental',
+      badge: 'Riesgo medio',
+      color: 'var(--risk-yellow)',
+      soft: '#fffbeb',
+      tint: '#fffdf5',
+      border: '#fed7aa',
+    }
+  }
+  return {
+    label: 'Flujo normal',
+    badge: 'Bajo riesgo',
+    color: 'var(--risk-green)',
+    soft: '#f0fdf4',
+    tint: '#f8fffb',
+    border: '#bbf7d0',
+  }
+}
+
+function splitSummarySentences(summary = '') {
+  const clean = String(summary).replace(/\s+/g, ' ').trim()
+  if (!clean) return []
+
+  const sentences = []
+  let start = 0
+
+  for (let i = 0; i < clean.length; i += 1) {
+    const char = clean[i]
+    if (!'.!?'.includes(char)) continue
+
+    const previous = clean[i - 1] || ''
+    const next = clean[i + 1] || ''
+    if (/\d/.test(previous) && /\d/.test(next)) continue
+
+    sentences.push(clean.slice(start, i + 1).trim())
+    while (clean[i + 1] === ' ') i += 1
+    start = i + 1
+  }
+
+  if (start < clean.length) sentences.push(clean.slice(start).trim())
+  return sentences.filter(Boolean)
+}
+
 export default function SiniestroDetail() {
   const { id } = useParams()
   const api = useFraudData()
@@ -51,7 +106,7 @@ export default function SiniestroDetail() {
   useEffect(() => {
     api.getSiniestroById(id).then(setItem)
     api.getClaimExplanation(id).then(setExplanation).catch(() => setExplanation(null))
-  }, [id])
+  }, [api, id])
 
   if (!item) return <div>Cargando...</div>
 
@@ -59,82 +114,223 @@ export default function SiniestroDetail() {
   const groupedAlerts = groupAlerts(item.alertas_detalle || [])
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 18 }}>
-      <div style={{ background: '#fff', padding: 16, borderRadius: 8 }}>
+    <div style={pageGridStyle}>
+      <main style={mainPanelStyle}>
         <button onClick={() => nav('/siniestros')} style={{ marginBottom: 12 }}>Volver a siniestros</button>
-        <h3 style={{ marginTop: 0 }}>Caso 360: {item.id_siniestro}</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-          <div><strong>Ramo:</strong> {item.ramo}</div>
-          <div><strong>Monto:</strong> <span style={{ fontFamily: 'var(--font-mono)' }}>{formatCurrency(item.monto_reclamado || 0)}</span></div>
-          <div><strong>Fecha:</strong> {formatDate(item.fecha_ocurrencia)}</div>
-          <div><strong>Score:</strong> {item.score}</div>
-          <div><strong>Proveedor:</strong> {item.beneficiario}</div>
-          <div><strong>Nivel:</strong> {item.nivel_riesgo}</div>
-          <div><strong>Clasificacion:</strong> {item.clasificacion_riesgo}</div>
-        </div>
+        <CaseHeader item={item} />
 
-        <section style={{ marginTop: 14 }}>
-          <h4>Resumen ejecutivo</h4>
-          <div style={{ background: '#f8fafc', border: '1px solid var(--border)', padding: 12, borderRadius: 8, lineHeight: 1.5 }}>
-            {explanation?.resumen_ejecutivo || item.explicacion_ia}
-          </div>
-        </section>
+        <ExecutiveSummary item={item} explanation={explanation} />
+        <NarrativeSection item={item} />
+        <AlertsSection groupedAlerts={groupedAlerts} hasAlerts={(item.alertas_detalle || []).length > 0} />
+      </main>
 
-        <section style={{ marginTop: 14 }}>
-          <h4>Descripcion y senales NLP</h4>
-          <p style={{ color: 'var(--muted)', lineHeight: 1.5 }}>{item.descripcion}</p>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-            {(item.senales_narrativa || []).length
-              ? item.senales_narrativa.map((signal) => (
-                  <span key={signal} style={{ background: '#fef3c7', padding: '6px 8px', borderRadius: 8 }}>{signal}</span>
-                ))
-              : <span style={{ color: 'var(--muted)' }}>Sin senales narrativas criticas.</span>}
-          </div>
-        </section>
-
-        <section style={{ marginTop: 14 }}>
-          <h4>Alertas activadas</h4>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, marginBottom: 12 }}>
-            {ALERT_GROUPS.map((group) => (
-              <div key={group.key} style={{ border: '1px solid var(--border)', borderTop: `4px solid ${group.color}`, borderRadius: 8, padding: 12, background: '#f8fafc' }}>
-                <strong style={{ display: 'block', color: '#111827' }}>{group.title}</strong>
-                <p style={{ margin: '6px 0 0', color: 'var(--muted)', lineHeight: 1.45, fontSize: 13 }}>{group.subtitle}</p>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: 'grid', gap: 10 }}>
-            {item.alertas_detalle.length
-              ? groupedAlerts.map((group) => <AlertGroup key={group.key} group={group} />)
-              : <div style={{ color: 'var(--muted)' }}>No hay alertas activadas.</div>}
-          </div>
-        </section>
-      </div>
-
-      <aside style={{ display: 'grid', gap: 12, alignContent: 'start' }}>
-        <div style={{ background: '#fff', padding: 16, borderRadius: 8, display: 'grid', placeItems: 'center' }}>
+      <aside style={asideStyle}>
+        <div style={sideCardStyle}>
           <ScoreGauge score={item.score} />
         </div>
 
-        <div style={{ background: '#fff', padding: 12, borderRadius: 8 }}>
-          <h4>Accion sugerida</h4>
-          <div style={{ padding: 12, borderRadius: 8, background: action.color, color: '#fff' }}>{action.action}</div>
+        <div style={sideCardStyle}>
+          <h4 style={sideTitleStyle}>Accion sugerida</h4>
+          <div style={{ ...actionBoxStyle, background: action.color }}>{action.action}</div>
         </div>
 
-        <div style={{ background: '#fff', padding: 12, borderRadius: 8 }}>
-          <h4>Checklist de analista</h4>
+        <div style={sideCardStyle}>
+          <h4 style={sideTitleStyle}>Checklist de analista</h4>
           <div style={{ display: 'grid', gap: 8 }}>
             {(explanation?.acciones_recomendadas || []).map((step) => (
-              <div key={step} style={{ borderLeft: '3px solid var(--accent)', paddingLeft: 8 }}>{step}</div>
+              <div key={step} style={checkItemStyle}>{step}</div>
             ))}
           </div>
         </div>
 
-        <div style={{ background: '#fff', padding: 12, borderRadius: 8, color: 'var(--muted)', lineHeight: 1.45 }}>
+        <div style={ethicsCardStyle}>
           {explanation?.nota_etica || 'Alerta para revision humana; no confirma fraude.'}
         </div>
       </aside>
     </div>
+  )
+}
+
+function CaseHeader({ item }) {
+  const theme = riskTheme(item.nivel_riesgo)
+  const facts = [
+    { label: 'Ramo', value: item.ramo },
+    { label: 'Monto', value: formatCurrency(item.monto_reclamado || 0), mono: true },
+    { label: 'Fecha', value: formatDate(item.fecha_ocurrencia) },
+    { label: 'Proveedor', value: item.beneficiario },
+    { label: 'Nivel', value: item.nivel_riesgo },
+    { label: 'Clasificacion', value: item.clasificacion_riesgo },
+  ]
+
+  return (
+    <section style={caseHeaderStyle}>
+      <div>
+        <span style={caseEyebrowStyle}>Caso 360</span>
+        <h3 style={caseTitleStyle}>{item.id_siniestro}</h3>
+      </div>
+      <span style={statusBadgeStyle(theme)}>{theme.badge}</span>
+
+      <div style={caseFactsStyle}>
+        {facts.map((fact) => (
+          <div key={fact.label} style={caseFactStyle}>
+            <span style={caseFactLabelStyle}>{fact.label}</span>
+            <strong style={fact.mono ? { fontFamily: 'var(--font-mono)' } : undefined}>{fact.value || '-'}</strong>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function ExecutiveSummary({ item, explanation }) {
+  const theme = riskTheme(item.nivel_riesgo)
+  const summary = explanation?.resumen_ejecutivo || item.explicacion_ia || 'Sin resumen disponible.'
+  const sentences = splitSummarySentences(summary)
+  const lead = sentences[0] || summary
+  const favorable = sentences.find((sentence) => sentence.toLowerCase().startsWith('a favor'))
+  const recommendation = [...sentences].reverse().find((sentence) => {
+    const lower = sentence.toLowerCase()
+    return lower.includes('recomendacion') || lower.includes('requiere revision') || lower.includes('no requiere revision')
+  })
+  const signals = explanation?.senales_principales || []
+  const contextItems = [
+    item.cobertura && { label: 'Cobertura', value: item.cobertura },
+    item.beneficiario && { label: 'Proveedor', value: item.beneficiario },
+    item.monto_reclamado !== undefined && { label: 'Monto', value: formatCurrency(item.monto_reclamado || 0) },
+    item.suma_asegurada !== undefined && { label: 'Suma asegurada', value: formatCurrency(item.suma_asegurada || 0) },
+  ].filter(Boolean)
+
+  return (
+    <section style={summaryCardStyle(theme)}>
+      <div style={summaryHeaderStyle}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          <span style={statusDotStyle(theme)} />
+          <div>
+            <h4 style={{ margin: 0 }}>Resumen ejecutivo</h4>
+            <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 2 }}>{theme.label}</div>
+          </div>
+        </div>
+        <div style={scorePillStyle(theme)}>
+          <span style={{ fontSize: 12, color: 'var(--muted)' }}>Score</span>
+          <strong>{item.score}/100</strong>
+        </div>
+      </div>
+
+      <div style={summaryLeadStyle}>{lead}</div>
+
+      <div style={summaryGridStyle}>
+        <SummaryPanel theme={theme} label="Decision operativa">
+          <strong style={{ color: theme.color, display: 'block', marginBottom: 6 }}>{theme.label}</strong>
+          <p style={summaryPanelTextStyle}>
+            {recommendation || 'Continuar con la validacion humana correspondiente al nivel de riesgo.'}
+          </p>
+        </SummaryPanel>
+
+        <SummaryPanel theme={theme} label="Evidencia clave">
+          <p style={summaryPanelTextStyle}>
+            {favorable || (signals.length ? 'El caso tiene senales trazables del motor de reglas.' : 'No se activaron alertas relevantes en reglas ni narrativa.')}
+          </p>
+        </SummaryPanel>
+      </div>
+
+      <div style={summaryBottomGridStyle}>
+        <SummaryPanel theme={theme} label="Contexto del reclamo">
+          <div style={chipRowStyle}>
+            {contextItems.map((fact) => (
+              <span key={fact.label} style={factChipStyle}>
+                <strong>{fact.label}:</strong> {fact.value}
+              </span>
+            ))}
+          </div>
+        </SummaryPanel>
+
+        <SummaryPanel theme={theme} label="Senales de score">
+          {signals.length ? (
+            <div style={chipRowStyle}>
+              {signals.slice(0, 3).map((signal) => (
+                <span key={signal.codigo || signal.nombre} style={signalChipStyle(theme)}>
+                  {signal.codigo ? `${signal.codigo} - ` : ''}{signal.nombre || signal.mensaje}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div style={emptyStateStyle}>Sin alertas activadas.</div>
+          )}
+        </SummaryPanel>
+      </div>
+    </section>
+  )
+}
+
+function SummaryPanel({ theme, label, children }) {
+  return (
+    <div style={summaryPanelStyle(theme)}>
+      <span style={panelLabelStyle}>{label}</span>
+      {children}
+    </div>
+  )
+}
+
+function NarrativeSection({ item }) {
+  const signals = item.senales_narrativa || []
+
+  return (
+    <section style={sectionCardStyle}>
+      <div style={sectionHeaderStyle}>
+        <div>
+          <h4 style={{ margin: 0 }}>Narrativa del reclamo</h4>
+          <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 3 }}>Descripcion reportada y resultado NLP</div>
+        </div>
+        <span style={signals.length ? nlpBadgeActiveStyle : nlpBadgeNeutralStyle}>
+          {signals.length ? `${signals.length} senal(es) NLP` : 'Sin senales NLP'}
+        </span>
+      </div>
+
+      <div style={narrativeBodyStyle}>
+        <p style={descriptionTextStyle}>{item.descripcion || 'Sin descripcion registrada.'}</p>
+      </div>
+
+      <div style={nlpPanelStyle}>
+        <span style={panelLabelStyle}>Resultado NLP</span>
+        {signals.length ? (
+          <div style={chipRowStyle}>
+            {signals.map((signal) => (
+              <span key={signal} style={nlpSignalChipStyle}>{signal}</span>
+            ))}
+          </div>
+        ) : (
+          <div style={emptyStateStyle}>No se detectaron contradicciones, vaguedad critica ni terminos de alto riesgo en el relato.</div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+function AlertsSection({ groupedAlerts, hasAlerts }) {
+  return (
+    <section style={sectionCardStyle}>
+      <div style={sectionHeaderStyle}>
+        <div>
+          <h4 style={{ margin: 0 }}>Alertas activadas</h4>
+          <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 3 }}>Reglas separadas por origen de senal</div>
+        </div>
+      </div>
+
+      <div style={alertIntroGridStyle}>
+        {ALERT_GROUPS.map((group) => (
+          <div key={group.key} style={{ ...alertIntroCardStyle, borderTop: `4px solid ${group.color}` }}>
+            <strong style={{ display: 'block', color: '#111827' }}>{group.title}</strong>
+            <p style={{ margin: '6px 0 0', color: 'var(--muted)', lineHeight: 1.45, fontSize: 13 }}>{group.subtitle}</p>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gap: 10 }}>
+        {hasAlerts
+          ? groupedAlerts.map((group) => <AlertGroup key={group.key} group={group} />)
+          : <div style={emptyAlertStateStyle}>No hay alertas activadas para este caso.</div>}
+      </div>
+    </section>
   )
 }
 
@@ -156,4 +352,330 @@ function AlertGroup({ group }) {
       </div>
     </div>
   )
+}
+
+const pageGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr) 360px',
+  gap: 18,
+}
+
+const mainPanelStyle = {
+  background: '#fff',
+  padding: 16,
+  borderRadius: 8,
+}
+
+const caseHeaderStyle = {
+  display: 'grid',
+  gridTemplateColumns: '1fr auto',
+  gap: 12,
+  border: '1px solid var(--border)',
+  background: '#f8fafc',
+  borderRadius: 8,
+  padding: 14,
+  marginBottom: 14,
+}
+
+const caseEyebrowStyle = {
+  display: 'block',
+  color: 'var(--muted)',
+  fontSize: 12,
+  fontWeight: 800,
+  textTransform: 'uppercase',
+}
+
+const caseTitleStyle = {
+  margin: '3px 0 0',
+  fontSize: 24,
+}
+
+const caseFactsStyle = {
+  gridColumn: '1 / -1',
+  display: 'grid',
+  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+  gap: 8,
+}
+
+const caseFactStyle = {
+  border: '1px solid #e2e8f0',
+  background: '#fff',
+  borderRadius: 8,
+  padding: '9px 10px',
+}
+
+const caseFactLabelStyle = {
+  display: 'block',
+  color: 'var(--muted)',
+  fontSize: 12,
+  marginBottom: 4,
+}
+
+const summaryHeaderStyle = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  gap: 12,
+  alignItems: 'center',
+}
+
+const summaryLeadStyle = {
+  marginTop: 14,
+  color: '#0f172a',
+  fontSize: 18,
+  lineHeight: 1.45,
+  fontWeight: 750,
+  maxWidth: 840,
+}
+
+const summaryGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+  gap: 10,
+  marginTop: 16,
+}
+
+const summaryBottomGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+  gap: 10,
+  marginTop: 10,
+}
+
+const panelLabelStyle = {
+  display: 'block',
+  color: 'var(--muted)',
+  fontSize: 12,
+  fontWeight: 800,
+  textTransform: 'uppercase',
+  marginBottom: 8,
+}
+
+const summaryPanelTextStyle = {
+  margin: 0,
+  color: '#334155',
+  lineHeight: 1.45,
+  fontSize: 14,
+}
+
+const chipRowStyle = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: 8,
+}
+
+const factChipStyle = {
+  border: '1px solid #e2e8f0',
+  background: '#fff',
+  color: '#334155',
+  borderRadius: 8,
+  padding: '7px 9px',
+  fontSize: 13,
+  lineHeight: 1.25,
+}
+
+const sectionCardStyle = {
+  marginTop: 14,
+  border: '1px solid var(--border)',
+  background: '#fff',
+  borderRadius: 8,
+  padding: 14,
+}
+
+const sectionHeaderStyle = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: 12,
+  marginBottom: 12,
+}
+
+const narrativeBodyStyle = {
+  border: '1px solid #dbeafe',
+  background: '#f8fbff',
+  borderRadius: 8,
+  padding: 12,
+}
+
+const descriptionTextStyle = {
+  color: '#1e293b',
+  lineHeight: 1.55,
+  fontSize: 15,
+}
+
+const nlpPanelStyle = {
+  marginTop: 10,
+  border: '1px solid var(--border)',
+  background: '#f8fafc',
+  borderRadius: 8,
+  padding: 12,
+}
+
+const nlpBadgeNeutralStyle = {
+  border: '1px solid #bae6fd',
+  background: '#f0f9ff',
+  color: '#0369a1',
+  borderRadius: 8,
+  padding: '7px 10px',
+  fontSize: 13,
+  fontWeight: 800,
+  whiteSpace: 'nowrap',
+}
+
+const nlpBadgeActiveStyle = {
+  ...nlpBadgeNeutralStyle,
+  border: '1px solid #fed7aa',
+  background: '#fff7ed',
+  color: '#c2410c',
+}
+
+const nlpSignalChipStyle = {
+  border: '1px solid #fed7aa',
+  background: '#fff7ed',
+  color: '#9a3412',
+  borderRadius: 8,
+  padding: '7px 9px',
+  fontSize: 13,
+  lineHeight: 1.25,
+}
+
+const alertIntroGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+  gap: 10,
+  marginBottom: 12,
+}
+
+const alertIntroCardStyle = {
+  border: '1px solid var(--border)',
+  borderRadius: 8,
+  padding: 12,
+  background: '#f8fafc',
+}
+
+const emptyStateStyle = {
+  color: 'var(--muted)',
+  fontSize: 13,
+  lineHeight: 1.45,
+}
+
+const emptyAlertStateStyle = {
+  color: 'var(--muted)',
+  border: '1px dashed #cbd5e1',
+  background: '#f8fafc',
+  borderRadius: 8,
+  padding: 12,
+  fontSize: 14,
+}
+
+const asideStyle = {
+  display: 'grid',
+  gap: 12,
+  alignContent: 'start',
+}
+
+const sideCardStyle = {
+  background: '#fff',
+  padding: 16,
+  borderRadius: 8,
+  border: '1px solid var(--border)',
+}
+
+const sideTitleStyle = {
+  margin: '0 0 10px',
+}
+
+const actionBoxStyle = {
+  padding: 12,
+  borderRadius: 8,
+  color: '#fff',
+  fontWeight: 800,
+}
+
+const checkItemStyle = {
+  borderLeft: '3px solid var(--accent)',
+  paddingLeft: 8,
+  color: '#334155',
+  lineHeight: 1.4,
+}
+
+const ethicsCardStyle = {
+  background: '#fff',
+  border: '1px solid var(--border)',
+  padding: 12,
+  borderRadius: 8,
+  color: 'var(--muted)',
+  lineHeight: 1.45,
+}
+
+function summaryCardStyle(theme) {
+  return {
+    border: `1px solid ${theme.border}`,
+    borderTop: `5px solid ${theme.color}`,
+    background: '#fff',
+    borderRadius: 8,
+    padding: 16,
+    boxShadow: '0 10px 24px rgba(15, 23, 42, 0.06)',
+  }
+}
+
+function statusDotStyle(theme) {
+  return {
+    width: 14,
+    height: 14,
+    borderRadius: 14,
+    background: theme.color,
+    boxShadow: `0 0 0 5px ${theme.tint}`,
+    flex: '0 0 auto',
+  }
+}
+
+function statusBadgeStyle(theme) {
+  return {
+    background: theme.soft,
+    color: theme.color,
+    border: `1px solid ${theme.border}`,
+    borderRadius: 8,
+    padding: '7px 10px',
+    fontSize: 13,
+    fontWeight: 800,
+    whiteSpace: 'nowrap',
+    alignSelf: 'start',
+  }
+}
+
+function scorePillStyle(theme) {
+  return {
+    display: 'grid',
+    gap: 2,
+    justifyItems: 'end',
+    border: `1px solid ${theme.border}`,
+    background: theme.soft,
+    color: theme.color,
+    borderRadius: 8,
+    padding: '8px 10px',
+    fontFamily: 'var(--font-mono)',
+    minWidth: 94,
+  }
+}
+
+function summaryPanelStyle(theme) {
+  return {
+    border: '1px solid var(--border)',
+    background: theme.tint,
+    borderRadius: 8,
+    padding: 12,
+    minHeight: 92,
+  }
+}
+
+function signalChipStyle(theme) {
+  return {
+    border: `1px solid ${theme.border}`,
+    background: theme.soft,
+    color: '#1f2937',
+    borderRadius: 8,
+    padding: '7px 9px',
+    fontSize: 13,
+    lineHeight: 1.25,
+  }
 }

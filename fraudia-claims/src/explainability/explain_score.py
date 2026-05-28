@@ -52,7 +52,7 @@ def build_executive_explanation(claim: dict) -> dict:
 
 def _human_executive_summary(claim: dict, reasons: list[str]) -> str:
     level = claim.get("nivel_riesgo")
-    score = claim.get("score_riesgo")
+    score = claim.get("score_riesgo") or 0
     claim_id = claim.get("id_siniestro")
     cobertura = claim.get("cobertura")
     proveedor = claim.get("beneficiario")
@@ -63,37 +63,68 @@ def _human_executive_summary(claim: dict, reasons: list[str]) -> str:
     documentos_inconsistentes = str(claim.get("documentos_inconsistentes", "")).lower()
     dias_reporte = claim.get("dias_entre_ocurrencia_reporte")
 
-    factors = []
-    if cobertura:
-        factors.append(f"la cobertura reportada ({cobertura})")
+    risk_factors = []
+    neutral_context = []
+    positive_context = []
+
     if documentos_completos in {"no", "false", "0"} or documentos_inconsistentes in {"si", "true", "1"}:
-        factors.append("documentacion incompleta o inconsistente")
+        risk_factors.append("documentacion incompleta o inconsistente")
+    elif documentos_completos in {"si", "true", "1"} and documentos_inconsistentes in {"no", "false", "0"}:
+        positive_context.append("documentacion completa y sin inconsistencias declaradas")
+
+    if cobertura:
+        neutral_context.append(f"cobertura {cobertura}")
     if proveedor:
-        factors.append(f"el beneficiario/proveedor {proveedor}")
+        neutral_context.append(f"proveedor {proveedor}")
     if ratio and ratio >= 0.9:
-        factors.append(f"un monto reclamado cercano a la suma asegurada ({round(float(ratio) * 100, 1)}%)")
+        risk_factors.append(f"monto reclamado cercano a la suma asegurada ({round(float(ratio) * 100, 1)}%)")
     elif monto and suma:
-        factors.append(f"un monto reclamado de {monto} frente a una suma asegurada de {suma}")
+        neutral_context.append(f"monto reclamado {monto} sobre suma asegurada {suma}")
     if dias_reporte and dias_reporte >= 4:
-        factors.append(f"un reporte realizado {dias_reporte} dias despues del evento")
+        risk_factors.append(f"reporte realizado {dias_reporte} dias despues del evento")
+    elif dias_reporte == 0:
+        positive_context.append("reporte el mismo dia del evento")
+    elif dias_reporte:
+        positive_context.append(f"reporte en {dias_reporte} dia(s)")
 
-    if not factors and reasons:
-        factors = reasons[:3]
+    if not risk_factors and reasons:
+        risk_factors = reasons[:3]
 
-    factor_text = ", ".join(factors[:4])
-    if len(factors) > 1:
-        last_separator = factor_text.rfind(", ")
-        factor_text = f"{factor_text[:last_separator]} y {factor_text[last_separator + 2:]}"
+    risk_text = _join_sentence_items(risk_factors[:4])
+    neutral_text = _join_sentence_items(neutral_context[:3])
+    positive_text = _join_sentence_items(positive_context[:3])
 
-    if not factor_text:
-        factor_text = "las senales disponibles en reglas y score"
+    if level == "verde":
+        if risk_text:
+            return (
+                f"El caso {claim_id} queda en nivel verde con score {score}/100. "
+                f"No requiere revision prioritaria, aunque conviene validar {risk_text} antes del cierre operativo. "
+                f"Contexto del reclamo: {neutral_text or 'datos basicos del siniestro'}. "
+                "La lectura es de bajo riesgo; no confirma fraude ni habilita una decision automatica."
+            )
+        return (
+            f"El caso {claim_id} queda en nivel verde con score {score}/100 porque no activa alertas relevantes "
+            f"en reglas ni en narrativa. {('A favor del flujo normal: ' + positive_text + '. ') if positive_text else ''}"
+            f"Contexto del reclamo: {neutral_text or 'datos basicos del siniestro'}. "
+            "No requiere revision prioritaria; la recomendacion es continuar el flujo normal con validacion documental basica."
+        )
 
+    action = "revision documental prioritaria" if level == "amarillo" else "revision especializada antes de decidir"
     return (
-        f"El caso {claim_id} requiere revision prioritaria porque presenta nivel {level} "
-        f"con score {score}/100 y combina {factor_text}. "
-        "Esta alerta no confirma fraude, pero si justifica validar soportes, fechas, proveedor "
-        "y narrativa antes de autorizar cualquier decision."
+        f"El caso {claim_id} queda en nivel {level} con score {score}/100 y requiere {action}. "
+        f"Las senales que explican la alerta son: {risk_text or 'alertas operativas del motor de reglas'}. "
+        f"Contexto del reclamo: {neutral_text or 'datos basicos del siniestro'}. "
+        "Esto no confirma fraude; orienta que soportes, fechas, proveedor y narrativa deben validarse antes de autorizar una decision."
     )
+
+
+def _join_sentence_items(items: list[str]) -> str:
+    clean_items = [str(item).strip() for item in items if str(item).strip()]
+    if not clean_items:
+        return ""
+    if len(clean_items) == 1:
+        return clean_items[0]
+    return f"{', '.join(clean_items[:-1])} y {clean_items[-1]}"
 
 
 def _recommended_actions(level: str | None, alerts: list[dict]) -> list[str]:
