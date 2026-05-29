@@ -84,7 +84,6 @@ export default function Dashboard() {
   const api = useFraudData()
   const [stats, setStats] = useState(null)
   const [claims, setClaims] = useState([])
-  const [networks, setNetworks] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(null)
@@ -104,15 +103,13 @@ export default function Dashboard() {
     setLoading(true)
     setError('')
     try {
-      const [statsData, claimsData, networksData] = await Promise.all([
+      const [statsData, claimsData] = await Promise.all([
         api.getDashboardStats(),
         api.getSiniestros({ limit: 500 }),
-        api.getProviderNetworks(8),
       ])
 
       setStats(statsData)
       setClaims(claimsData.items || claimsData || [])
-      setNetworks(networksData || [])
       setActiveDataset((current) => ({
         filename: statsData.active_source_filename || current?.filename || 'Archivo no identificado',
         label: statsData.active_dataset_label || current?.label || 'Archivo activo',
