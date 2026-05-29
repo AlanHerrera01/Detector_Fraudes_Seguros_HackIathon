@@ -115,6 +115,17 @@ def build_context(question: str, scored_claims: pd.DataFrame, claim_id: str | No
         ramo_summary["porcentaje_sospechoso"] = (ramo_summary["casos_sospechosos"] / ramo_summary["total_casos"] * 100).round(2)
         return _with_response_goal(_compact_table(ramo_summary.sort_values(["porcentaje_sospechoso", "score_promedio"], ascending=False), max_rows=10), "ranking_ramos"), ["line_of_business_summary", "claims_scores"]
 
+    if _is_provider_pareto_question(normalized):
+        pareto = _provider_red_alert_pareto(scored_claims)
+        context = "\n".join(
+            [
+                "calculo: proveedores ordenados por alertas rojas; se acumula hasta cubrir al menos 80% del total.",
+                _compact_table(pareto, max_rows=10),
+                "regla_respuesta: responder con los proveedores incluidos, alertas rojas, porcentaje individual y porcentaje acumulado. Si no hay alertas rojas, indicarlo sin inventar.",
+            ]
+        )
+        return _with_response_goal(context, "pareto_proveedores_rojos"), ["provider_pareto", "claims_scores"]
+
     if "proveedor" in normalized or "beneficiario" in normalized:
         ranking = (
             scored_claims.groupby("beneficiario")
@@ -247,6 +258,54 @@ def _smalltalk_answer() -> str:
         "- Revisar proveedores, documentos, montos atípicos o patrones.\n"
         "- Generar un resumen ejecutivo para comité."
     )
+
+
+def _is_provider_pareto_question(question: str) -> bool:
+    provider_terms = ["proveedor", "proveedores", "beneficiario", "beneficiarios"]
+    red_terms = ["alertas rojas", "rojas", "rojo", "criticas", "criticos", "critico"]
+    pareto_terms = ["80", "ochenta", "concentran", "concentracion", "acumulan", "pareto"]
+    return (
+        any(term in question for term in provider_terms)
+        and any(term in question for term in red_terms)
+        and any(term in question for term in pareto_terms)
+    )
+
+
+def _provider_red_alert_pareto(scored_claims: pd.DataFrame, target_pct: float = 80.0) -> pd.DataFrame:
+    ranking = (
+        scored_claims.groupby("beneficiario")
+        .agg(
+            total_casos=("id_siniestro", "count"),
+            alertas_rojas=("nivel_riesgo", lambda s: int((s == "rojo").sum())),
+            score_promedio=("score_riesgo", "mean"),
+        )
+        .reset_index()
+    )
+    ranking = ranking[ranking["alertas_rojas"] > 0].sort_values(["alertas_rojas", "score_promedio"], ascending=False)
+    total_red = int(ranking["alertas_rojas"].sum()) if not ranking.empty else 0
+    if total_red == 0:
+        return pd.DataFrame(
+            [{"beneficiario": "sin_alertas_rojas", "total_alertas_rojas": 0, "porcentaje_objetivo": target_pct}]
+        )
+
+    ranking["total_alertas_rojas"] = total_red
+    ranking["porcentaje_individual"] = (ranking["alertas_rojas"] / total_red * 100).round(2)
+    ranking["porcentaje_acumulado"] = (ranking["alertas_rojas"].cumsum() / total_red * 100).round(2)
+    cutoff_index = ranking.index[ranking["porcentaje_acumulado"] >= target_pct]
+    if len(cutoff_index):
+        ranking = ranking.loc[: cutoff_index[0]]
+    ranking["score_promedio"] = ranking["score_promedio"].round(2)
+    return ranking[
+        [
+            "beneficiario",
+            "alertas_rojas",
+            "total_alertas_rojas",
+            "porcentaje_individual",
+            "porcentaje_acumulado",
+            "total_casos",
+            "score_promedio",
+        ]
+    ]
 
 
 def _with_response_goal(context: str, goal: str) -> str:

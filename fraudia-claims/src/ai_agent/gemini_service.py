@@ -458,6 +458,8 @@ def _claim_answer_too_short(answer: str, context: str) -> bool:
 def _fallback_structured_answer(context: str) -> str:
     goal = _context_goal(context)
     rows = _context_rows(context)
+    if goal == "pareto_proveedores_rojos":
+        return _fallback_provider_pareto_answer(rows)
     if goal in {"ranking_ciudades", "ranking_proveedores", "ranking_ramos", "frecuencia_asegurados"}:
         return _fallback_ranking_answer(goal, rows)
     if goal in {"top_riesgo", "priorizar_revision"}:
@@ -520,6 +522,38 @@ def _fallback_ranking_answer(goal: str, rows: list[dict[str, str]]) -> str:
         f"Como analista, te recomiendo: {closing} "
         "Tambien revisaria si los casos comparten reglas, fechas cercanas, documentos incompletos o una misma narrativa de reclamo."
     )
+
+
+def _fallback_provider_pareto_answer(rows: list[dict[str, str]]) -> str:
+    if not rows:
+        return (
+            "No encontre datos suficientes para calcular la concentracion de alertas rojas por proveedor. "
+            "Valida que el dataset activo tenga nivel de riesgo y proveedor."
+        )
+
+    if rows[0].get("beneficiario") == "sin_alertas_rojas":
+        return (
+            "En el archivo activo no hay alertas rojas por proveedor, asi que no existe un grupo que concentre el 80%. "
+            "Como analista, mantendria monitoreo normal y revisaria los casos medios si tienen documentos o narrativa sensible."
+        )
+
+    total_red = rows[0].get("total_alertas_rojas", "N/D")
+    accumulated = rows[-1].get("porcentaje_acumulado", "N/D")
+    names = ", ".join(row.get("beneficiario", "N/D") for row in rows)
+    lines = [
+        f"Los proveedores que concentran aproximadamente el 80% de las alertas rojas son: {names}.",
+        f"En conjunto acumulan {accumulated}% de las {total_red} alertas rojas del archivo activo.",
+    ]
+    for row in rows:
+        lines.append(
+            f"- {row.get('beneficiario', 'N/D')}: {row.get('alertas_rojas', 'N/D')} alerta(s) roja(s), "
+            f"{row.get('porcentaje_individual', 'N/D')}% individual, acumulado {row.get('porcentaje_acumulado', 'N/D')}%, "
+            f"score promedio {row.get('score_promedio', 'N/D')}/100."
+        )
+    lines.append(
+        "Esto no confirma fraude; sirve para priorizar revision humana de casos, documentos, fechas y narrativa en esos proveedores."
+    )
+    return "\n".join(lines)
 
 
 def _fallback_top_claims_answer(rows: list[dict[str, str]]) -> str:
