@@ -365,14 +365,16 @@ export default function Dashboard() {
         </div>
       )}
 
-      <ActiveDatasetPanel dataset={activeDataset} total={summary.total} />
+      <div style={dashboardOverviewStyle}>
+        <ActiveDatasetPanel dataset={activeDataset} total={summary.total} />
 
-      <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 14 }}>
-        <StatCard label="Siniestros analizados" value={summary.total} accent="var(--accent)" hint="Archivo activo" info="Total de casos cargados para revision." />
-        <StatCard label="Casos criticos" value={summary.critical} accent="#7f1d1d" hint="Auditoria inmediata" info="Casos con score critico o cercano a 90+." />
-        <StatCard label="Score promedio" value={(stats.score_promedio ?? 0).toFixed(1)} accent="var(--risk-yellow)" hint="Riesgo agregado" info="Promedio del score calculado por reglas, NLP y ML." />
-        <StatCard label="Casos con alerta" value={summary.claimsWithAlerts} accent="var(--risk-green)" hint="Senales detectadas" info="Casos con al menos una alerta; no confirma fraude." />
-        <StatCard label="Ahorro estimado" value={formatCurrency(stats.ahorro_potencial ?? 0)} accent="#14b8a6" hint="Potencial auditado" info="Estimacion referencial del monto que podria priorizarse para revision antes de pago." />
+        <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 14, marginTop: 16 }}>
+          <StatCard label="Siniestros analizados" value={summary.total} accent="var(--accent)" hint="Archivo activo" info="Total de casos cargados para revision." />
+          <StatCard label="Casos criticos" value={summary.critical} accent="#7f1d1d" hint="Auditoria inmediata" info="Casos con score critico o cercano a 90+." />
+          <StatCard label="Score promedio" value={(stats.score_promedio ?? 0).toFixed(1)} accent="var(--risk-yellow)" hint="Riesgo agregado" info="Promedio del score calculado por reglas, NLP y ML." />
+          <StatCard label="Casos con alerta" value={summary.claimsWithAlerts} accent="var(--risk-green)" hint="Senales detectadas" info="Casos con al menos una alerta; no confirma fraude." />
+          <StatCard label="Ahorro estimado" value={formatCurrency(stats.ahorro_potencial ?? 0)} accent="#14b8a6" hint="Potencial auditado" info="Estimacion referencial del monto que podria priorizarse para revision antes de pago." />
+        </div>
       </div>
 
       <Panel style={{ padding: 18 }}>
@@ -538,35 +540,33 @@ function ActiveDatasetPanel({ dataset, total }) {
   const storage = dataset?.storage || 'api'
 
   return (
-    <Panel style={{ padding: 16 }}>
-      <div className="active-dataset-grid" style={activeDatasetGridStyle}>
-        <div style={{ minWidth: 0 }}>
-          <span style={activeDatasetEyebrowStyle}>{label}</span>
-          <h3 style={{ margin: '5px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {filename}
-          </h3>
-          <p style={{ color: 'var(--muted)', marginTop: 6 }}>
-            Este es el archivo que alimenta los indicadores, graficas, reportes y agente del dashboard.
-          </p>
-        </div>
-
-        <div style={activeDatasetMetricStyle}>
-          <span>Casos en este archivo</span>
-          <strong style={activeDatasetMetricValueStyle}>{visibleClaims ?? 0}</strong>
-        </div>
-
-        <div style={activeDatasetMetricStyle}>
-          <span>Historico entrenamiento</span>
-          <strong style={activeDatasetMetricValueStyle}>{trainingClaims ?? 'N/A'}</strong>
-        </div>
-
-        <div style={activeDatasetMetricStyle}>
-          <span>Almacenamiento</span>
-          <strong style={activeDatasetMetricValueStyle}>{String(storage).toUpperCase()}</strong>
-          <small style={{ color: 'var(--muted)' }}>{dateTimeLabel(dataset?.uploadedAt)}</small>
-        </div>
+    <div className="active-dataset-grid" style={activeDatasetGridStyle}>
+      <div style={{ minWidth: 0 }}>
+        <span style={activeDatasetEyebrowStyle}>{label}</span>
+        <h3 style={{ margin: '5px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {filename}
+        </h3>
+        <p style={{ color: 'var(--muted)', marginTop: 6 }}>
+          Este es el archivo que alimenta los indicadores, graficas, reportes y agente del dashboard.
+        </p>
       </div>
-    </Panel>
+
+      <div style={activeDatasetMetricStyle}>
+        <span>Casos en este archivo</span>
+        <strong style={activeDatasetMetricValueStyle}>{visibleClaims ?? 0}</strong>
+      </div>
+
+      <div style={activeDatasetMetricStyle}>
+        <span>Historico entrenamiento</span>
+        <strong style={activeDatasetMetricValueStyle}>{trainingClaims ?? 'N/A'}</strong>
+      </div>
+
+      <div style={activeDatasetMetricStyle}>
+        <span>Almacenamiento</span>
+        <strong style={activeDatasetMetricValueStyle}>{String(storage).toUpperCase()}</strong>
+        <small style={{ color: 'var(--muted)' }}>{dateTimeLabel(dataset?.uploadedAt)}</small>
+      </div>
+    </div>
   )
 }
 
@@ -874,6 +874,14 @@ const panelHeaderStyle = {
   gap: 12,
   alignItems: 'start',
   marginBottom: 8,
+}
+
+const dashboardOverviewStyle = {
+  background: 'var(--panel-bg)',
+  border: '1px solid var(--border)',
+  borderRadius: 'var(--radius-lg)',
+  padding: 18,
+  boxShadow: '0 0 15px rgba(96, 165, 250, 0.05)',
 }
 
 const activeDatasetGridStyle = {
