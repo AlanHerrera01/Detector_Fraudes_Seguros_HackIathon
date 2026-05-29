@@ -755,7 +755,7 @@ function CityCasesPanel({ cities, total, nav }) {
         <>
           <div className="city-map-layout" style={cityMapLayoutStyle}>
             <div style={cityMapFrameStyle}>
-              <svg viewBox="0 0 100 100" role="img" aria-label="Mapa de calor por ciudad" style={{ width: '100%', minHeight: 360, display: 'block' }}>
+              <svg viewBox="0 0 100 100" role="img" aria-label="Mapa de calor por ciudad" style={{ width: '100%', height: '100%', display: 'block' }}>
                 <defs>
                   <linearGradient id="mapFill" x1="0" x2="1" y1="0" y2="1">
                     <stop offset="0%" stopColor="#0f2a4d" />
@@ -779,19 +779,24 @@ function CityCasesPanel({ cities, total, nav }) {
                 />
                 <path d="M45 9 C50 24 48 39 52 53 C56 66 51 78 49 91" fill="none" stroke="rgba(203,213,225,0.26)" strokeWidth="1.1" strokeDasharray="2 2" />
                 <path d="M18 72 C28 66 36 63 46 60 C55 57 60 52 64 44" fill="none" stroke="rgba(96,165,250,0.18)" strokeWidth="1" />
-                <text x="7" y="10" fill="#64748b" fontSize="4.2" fontWeight="700">Pacifico</text>
-                <text x="70" y="92" fill="#64748b" fontSize="4.2" fontWeight="700">Amazonia</text>
+                <text x="7" y="12" fill="#64748b" fontSize="3.4" fontWeight="700">Pacifico</text>
+                <text x="72" y="92" fill="#64748b" fontSize="3.4" fontWeight="700">Amazonia</text>
                 {mapCities.map((item) => {
                   const intensity = Math.max(0.2, item.total / maxCases)
                   const color = item.scoreAvg >= 76 ? '#ef4444' : item.scoreAvg >= 41 ? '#f59e0b' : '#10b981'
-                  const radius = 3.6 + intensity * 7.5
+                  const radius = 2.2 + intensity * 4.2
                   const active = activeCity?.city === item.city
                   return (
                     <g key={item.city} filter="url(#cityGlow)" style={{ cursor: 'pointer' }} onClick={() => setSelectedCity(item.city)}>
-                      <circle cx={item.point.x} cy={item.point.y} r={radius + 2.5} fill={color} opacity={active ? 0.28 : 0.12} />
+                      <circle cx={item.point.x} cy={item.point.y} r={radius + 1.8} fill={color} opacity={active ? 0.28 : 0.1} />
                       <circle cx={item.point.x} cy={item.point.y} r={radius} fill={color} opacity={0.78} stroke={active ? '#e0f2fe' : '#0f172a'} strokeWidth={active ? 1.8 : 1} />
-                      <text x={item.point.x + radius + 2} y={item.point.y + 1.4} fill="#e2e8f0" fontSize="3.8" fontWeight="800">{item.city}</text>
-                      <text x={item.point.x + radius + 2} y={item.point.y + 5.4} fill="#94a3b8" fontSize="3.2">{item.total} casos</text>
+                      {active && (
+                        <>
+                          <rect x={Math.min(item.point.x + radius + 1.8, 72)} y={item.point.y - 7} width="24" height="12" rx="3" fill="rgba(15,23,42,0.82)" stroke="rgba(226,232,240,0.18)" />
+                          <text x={Math.min(item.point.x + radius + 4, 74)} y={item.point.y - 2.2} fill="#e2e8f0" fontSize="3.2" fontWeight="800">{item.city}</text>
+                          <text x={Math.min(item.point.x + radius + 4, 74)} y={item.point.y + 2.4} fill="#94a3b8" fontSize="2.8">{item.total} casos</text>
+                        </>
+                      )}
                     </g>
                   )
                 })}
@@ -810,7 +815,7 @@ function CityCasesPanel({ cities, total, nav }) {
                     style={cityMapListButtonStyle(riskColor, isActive)}
                     title={`${item.city}: ${item.total} casos, score promedio ${item.scoreAvg}`}
                   >
-                    <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.city}</span>
+                    <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 800 }}>{item.city}</span>
                     <strong>{item.total}</strong>
                     <small style={{ color: 'var(--muted)' }}>Score {item.scoreAvg}</small>
                   </button>
@@ -1001,14 +1006,14 @@ const portfolioStatsStyle = {
 
 const cityMapLayoutStyle = {
   display: 'grid',
-  gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 300px)',
+  gridTemplateColumns: 'minmax(0, 1fr) minmax(190px, 260px)',
   gap: 14,
   marginTop: 16,
   alignItems: 'stretch',
 }
 
 const cityMapFrameStyle = {
-  minHeight: 380,
+  height: 300,
   borderRadius: 8,
   overflow: 'hidden',
   background: '#0b1229',
@@ -1019,7 +1024,7 @@ const cityMapSideStyle = {
   display: 'grid',
   alignContent: 'start',
   gap: 8,
-  maxHeight: 380,
+  maxHeight: 300,
   overflowY: 'auto',
   paddingRight: 4,
 }
@@ -1035,7 +1040,7 @@ function cityMapListButtonStyle(riskColor, active) {
     border: `1px solid ${active ? riskColor : 'var(--border-light)'}`,
     color: 'var(--text)',
     borderRadius: 8,
-    padding: 10,
+    padding: '8px 10px',
   }
 }
 
