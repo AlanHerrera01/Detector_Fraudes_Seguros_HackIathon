@@ -8,8 +8,6 @@ from src.ai_agent.gemini_service import ask_ai_model
 def answer_question(question: str, scored_claims: pd.DataFrame, provider: str | None = None, claim_id: str | None = None) -> dict:
     """Responde preguntas del analista usando solo contexto derivado del dataset."""
     context, sources = build_context(question, scored_claims, claim_id)
-    if sources == ["system"] and "saludando" in context:
-        return {"answer": _smalltalk_answer(), "sources": sources, "provider": "system"}
     answer, used_provider = ask_ai_model(question, context, provider)
     return {"answer": answer, "sources": sources, "provider": used_provider}
 
@@ -25,7 +23,9 @@ def build_context(question: str, scored_claims: pd.DataFrame, claim_id: str | No
     if _is_smalltalk(normalized):
         context = (
             "El usuario solo esta saludando o iniciando conversacion. "
-            "Responde cordialmente en una frase y ofrece ayuda con siniestros, proveedores, documentos, scores o alertas."
+            "Responde en maximo 35 palabras, cordial y natural. "
+            "No listes muchas opciones; ofrece ayuda con siniestros, proveedores, documentos, scores o alertas. "
+            "No uses datos del portafolio para este saludo."
         )
         return context, ["system"]
 
@@ -247,17 +247,6 @@ def _smalltalk_answer() -> str:
         "- Revisar proveedores, documentos, montos atípicos o patrones.\n"
         "- Generar un resumen ejecutivo para comité."
     )
-
-
-def _smalltalk_answer() -> str:
-    options = [
-        "Hola, soy el asistente de FraudIA. Te ayudo a entender alertas y priorizar revisiones. Que necesitas?",
-        "- Explicar por que un siniestro salio rojo, amarillo o verde.",
-        "- Ver los casos con mayor riesgo.",
-        "- Revisar proveedores, documentos faltantes, montos atipicos o patrones.",
-        "- Preparar un resumen ejecutivo para comite.",
-    ]
-    return "\n".join(options)
 
 
 def _with_response_goal(context: str, goal: str) -> str:

@@ -8,13 +8,15 @@ load_dotenv()
 
 
 SYSTEM_INSTRUCTION = """
-Eres FraudIA, analista de siniestros. Responde amable, claro y util.
-Usa solo el contexto entregado; no inventes datos ni confirmes fraude.
-Explica como a un analista: fluido, intuitivo y con criterio tecnico.
-Usa 6-10 frases breves, entre 160 y 260 palabras cuando la pregunta pida explicacion.
-Si la pregunta pide un top, ranking o lista, respeta la cantidad solicitada y prioriza claridad sobre brevedad.
-Incluye una frase tipo: Como analista, te recomiendo...
+Eres FraudIA, un asistente conversacional experto en analisis de siniestros.
+Habla en espanol natural, cercano y profesional: como un analista senior que ayuda a otro analista.
+Adapta la respuesta al usuario: si saluda, responde breve y amable; si pregunta algo tecnico, razona con criterio.
+Usa solo el contexto entregado para datos concretos; no inventes cifras, casos ni confirmes fraude.
+Puedes interpretar, priorizar y recomendar pasos, pero siempre como alerta para revision humana.
+Evita respuestas rigidas o plantillas repetidas; varia la redaccion y conversa con el usuario.
+Si la pregunta pide explicacion, usa parrafos breves y claros. Si pide top, ranking o lista, respeta la cantidad solicitada.
 Si hay semaforo: verde 0-40, amarillo 41-75, rojo 76-100.
+Cuando corresponda, cierra con una recomendacion accionable de analista.
 No uses Markdown complejo ni etiquetas rigidas.
 """
 
@@ -25,7 +27,7 @@ def ask_gemini(question: str, context: str) -> str:
     model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
     timeout_seconds = int(os.getenv("GEMINI_TIMEOUT_SECONDS", "8"))
     max_context_chars = int(os.getenv("GEMINI_MAX_CONTEXT_CHARS", "6000"))
-    max_output_tokens = int(os.getenv("GEMINI_MAX_OUTPUT_TOKENS", "700"))
+    max_output_tokens = int(os.getenv("GEMINI_MAX_OUTPUT_TOKENS", "875"))
     verify_ssl = os.getenv("GEMINI_VERIFY_SSL", "true").strip().lower() not in {"0", "false", "no"}
 
     if not api_key or api_key == "your_gemini_api_key_here":
@@ -55,7 +57,8 @@ def ask_gemini(question: str, context: str) -> str:
                 }
             ],
             "generationConfig": {
-                "temperature": 0.25,
+                "temperature": float(os.getenv("GEMINI_TEMPERATURE", "0.45")),
+                "topP": float(os.getenv("GEMINI_TOP_P", "0.9")),
                 "maxOutputTokens": max_output_tokens,
             },
         }

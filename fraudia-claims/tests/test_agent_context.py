@@ -89,13 +89,16 @@ def test_agent_context_ignores_active_claim_for_plain_greeting():
     assert sources == ["system"]
 
 
-def test_agent_answers_plain_greeting_with_options_without_ai():
+def test_agent_sends_plain_greeting_to_ai_with_minimal_context(monkeypatch):
     df = _scored_claims()
+    monkeypatch.setattr(
+        "src.ai_agent.claims_agent.ask_ai_model",
+        lambda question, context, provider=None: ("Hola, soy FraudIA. Que revisamos primero?", "gemini"),
+    )
     response = answer_question("Hola", df, claim_id="SIN-0002")
 
-    assert response["provider"] == "system"
-    assert "Que necesitas" in response["answer"]
-    assert "Explicar por que" in response["answer"]
+    assert response["provider"] == "gemini"
+    assert "FraudIA" in response["answer"]
 
 
 def test_agent_context_infers_unique_yellow_claim_for_color_question():
