@@ -2,7 +2,7 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import useFraudData from '../hooks/useFraudData'
 import StatCard from '../components/ui/StatCard'
-import { formatCurrency, levelFromScore } from '../utils/riskHelpers'
+import { formatCurrency } from '../utils/riskHelpers'
 
 function pct(value, total) {
   if (!total) return 0
@@ -25,24 +25,6 @@ function dateTimeLabel(value) {
 function topLabelFromMap(map, fallback) {
   const [label] = Object.entries(map).sort((a, b) => b[1] - a[1])[0] || []
   return label || fallback
-}
-
-function RiskPill({ level }) {
-  const colors = {
-    rojo: 'var(--risk-red)',
-    amarillo: 'var(--risk-yellow)',
-    verde: 'var(--risk-green)',
-  }
-  const labels = {
-    rojo: 'Critico',
-    amarillo: 'Medio',
-    verde: 'Bajo',
-  }
-  return (
-    <span style={{ background: colors[level] || '#64748b', color: '#fff', borderRadius: 999, padding: '4px 10px', fontSize: 12, fontWeight: 700, textTransform: 'capitalize' }}>
-      {labels[level] || 'Sin nivel'}
-    </span>
-  )
 }
 
 function Badge({ label, color }) {
@@ -450,8 +432,6 @@ export default function Dashboard() {
         />
       </Panel>
 
-      <PriorityClaimsPanel claims={summary.top} nav={nav} />
-
       <div className="dashboard-three-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
         <Panel>
           <div style={panelHeaderStyle}>
@@ -664,39 +644,6 @@ function UploadModal({ file, setFile, loading, progress, elapsedSeconds, result,
         </div>
       </div>
     </div>
-  )
-}
-
-function PriorityClaimsPanel({ claims, nav }) {
-  return (
-    <Panel style={{ padding: 22 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
-        <div>
-          <h3 style={{ margin: 0 }}>Casos recientes prioritarios</h3>
-          <p style={{ color: 'var(--muted)', marginTop: 6 }}>Siniestros con mayor puntaje para revision inmediata. Desplazate para ver mas casos criticos.</p>
-        </div>
-        <button onClick={() => nav('/siniestros')} style={panelButtonStyle}>Ver bandeja</button>
-      </div>
-      <div style={priorityScrollStyle}>
-        {claims.map((item) => {
-          const level = levelFromScore(item.score)
-          return (
-            <button key={item.id_siniestro} onClick={() => nav(`/siniestros/${item.id_siniestro}`)} style={priorityRowStyle}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700 }}>{item.id_siniestro}</div>
-                <div style={{ color: 'var(--muted)', marginTop: 6, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {item.cobertura || 'Cobertura desconocida'} • {item.beneficiario || 'Proveedor'}
-                </div>
-              </div>
-              <div style={{ display: 'grid', gap: 8, justifyItems: 'end' }}>
-                <RiskPill level={item.nivel_riesgo || level.nivel} />
-                <strong style={{ color: level.color, fontSize: 20 }}>{item.score}</strong>
-              </div>
-            </button>
-          )
-        })}
-      </div>
-    </Panel>
   )
 }
 
@@ -945,27 +892,6 @@ const portfolioStatsStyle = {
   display: 'grid',
   gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
   gap: 10,
-}
-
-const priorityScrollStyle = {
-  display: 'grid',
-  gap: 10,
-  marginTop: 16,
-  maxHeight: 420,
-  overflowY: 'auto',
-  paddingRight: 6,
-}
-
-const priorityRowStyle = {
-  display: 'grid',
-  gridTemplateColumns: 'minmax(0, 1fr) auto',
-  gap: 12,
-  alignItems: 'center',
-  background: 'var(--panel-bg)',
-  border: '1px solid var(--border)',
-  padding: 14,
-  borderRadius: 'var(--radius-lg)',
-  textAlign: 'left',
 }
 
 const cityRowStyle = {
