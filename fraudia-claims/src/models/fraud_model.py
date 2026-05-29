@@ -1,4 +1,5 @@
 import os
+import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -8,6 +9,7 @@ from sklearn.ensemble import IsolationForest, RandomForestClassifier
 
 
 DEFAULT_MODEL_PATH = Path(__file__).resolve().parents[2] / "data/models/model.pkl"
+MODEL_HASH_SUFFIX = ".sha256"
 
 MODEL_FEATURES = [
     "monto_reclamado",
@@ -119,6 +121,7 @@ def _save_model(model, kind: str, training: pd.DataFrame, model_path: str | Path
         "has_labels": _can_train_supervised(training),
     }
     joblib.dump(artifact, path)
+    _write_model_hash(path)
     return artifact
 
 
@@ -126,7 +129,37 @@ def _load_model(model_path: str | Path | None = None) -> dict | None:
     path = _model_path(model_path)
     if not path.exists():
         return None
+    if not _model_hash_valid(path):
+        return None
     artifact = joblib.load(path)
     if not isinstance(artifact, dict) or artifact.get("features") != MODEL_FEATURES:
         return None
     return artifact
+
+
+def _hash_path(path: Path) -> Path:
+    return path.with_name(f"{path.name}{MODEL_HASH_SUFFIX}")
+
+
+def _model_digest(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as file:
+        for chunk in iter(lambda: file.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _write_model_hash(path: Path) -> str:
+    digest = _model_digest(path)
+    _hash_path(path).write_text(f"{digest}  {path.name}\n", encoding="utf-8")
+    return digest
+
+
+def _model_hash_valid(path: Path) -> bool:
+    hash_path = _hash_path(path)
+    if not hash_path.exists():
+        return False
+    expected = hash_path.read_text(encoding="utf-8").strip().split()[0]
+    if len(expected) != 64:
+        return False
+    return _model_digest(path) == expected

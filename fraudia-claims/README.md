@@ -244,6 +244,7 @@ El backend usa un enfoque hibrido:
 - Reglas explicables y NLP calculan senales trazables.
 - El modelo ML suma un componente de riesgo de hasta 25 puntos.
 - Si existe `data/models/model.pkl`, el scoring lo reutiliza.
+- El artefacto persistente se protege con `data/models/model.pkl.sha256`; si el hash no coincide, el backend descarta el modelo y evita cargar un archivo alterado.
 - Si hay historico con `etiqueta_fraude_simulada`, el backend puede actualizar el modelo supervisado.
 - Si no hay etiquetas suficientes, usa `IsolationForest` como respaldo de anomalias.
 
@@ -264,6 +265,8 @@ Tipo: supervised_random_forest
 Filas de entrenamiento: ...
 Etiquetas supervisadas: si
 ```
+
+El entrenamiento tambien genera `model.pkl.sha256` para verificar integridad antes de usar el modelo en scoring.
 
 Esto no reemplaza las reglas; las complementa. El score final sigue siendo explicable y limitado a `0/100`.
 
@@ -315,6 +318,7 @@ Como mejora futura se puede agregar evaluacion automatica de coherencia de resum
 ### Agente IA
 
 - `POST /agent/query`
+- El agente aplica hardening anti prompt injection: remueve instrucciones sospechosas como ignorar reglas, revelar prompts o desactivar controles, y conserva solo la consulta de negocio contra el contexto autorizado.
 
 Ejemplo:
 

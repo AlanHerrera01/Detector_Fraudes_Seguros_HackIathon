@@ -2,13 +2,17 @@ import unicodedata
 
 import pandas as pd
 
-from src.ai_agent.gemini_service import ask_ai_model
+from src.ai_agent.gemini_service import PROMPT_INJECTION_NOTICE, ask_ai_model, sanitize_agent_question
 
 
 def answer_question(question: str, scored_claims: pd.DataFrame, provider: str | None = None, claim_id: str | None = None) -> dict:
     """Responde preguntas del analista usando solo contexto derivado del dataset."""
-    context, sources = build_context(question, scored_claims, claim_id)
-    answer, used_provider = ask_ai_model(question, context, provider)
+    safe_question, injection_detected = sanitize_agent_question(question)
+    context, sources = build_context(safe_question, scored_claims, claim_id)
+    if injection_detected:
+        context = f"{PROMPT_INJECTION_NOTICE}\n{context}"
+        sources = [*sources, "prompt_injection_guardrail"]
+    answer, used_provider = ask_ai_model(safe_question, context, provider)
     return {"answer": answer, "sources": sources, "provider": used_provider}
 
 
