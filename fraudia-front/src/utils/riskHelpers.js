@@ -1,8 +1,16 @@
 export function levelFromScore(score) {
   if (score <= 40) return { nivel: 'verde', label: 'Bajo', clasificacion: 'bajo', color: 'var(--risk-green)' }
   if (score <= 75) return { nivel: 'amarillo', label: 'Medio', clasificacion: 'medio', color: 'var(--risk-yellow)' }
-  if (score < 90) return { nivel: 'rojo', label: 'Alto', clasificacion: 'alto', color: 'var(--risk-red)' }
+  if (score < 90) return { nivel: 'rojo', label: 'Critico', clasificacion: 'alto', color: 'var(--risk-red)' }
   return { nivel: 'rojo', label: 'Critico', clasificacion: 'critico', color: '#7f1d1d' }
+}
+
+export function riskLabel(level) {
+  if (level === 'verde') return 'Bajo'
+  if (level === 'amarillo') return 'Medio'
+  if (level === 'rojo') return 'Critico'
+  if (!level) return 'Sin nivel'
+  return String(level)
 }
 
 export function formatCurrency(n) {

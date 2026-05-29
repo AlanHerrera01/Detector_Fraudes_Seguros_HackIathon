@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import useFraudData from '../hooks/useFraudData'
 import ScoreGauge from '../components/ui/ScoreGauge'
 import AlertCard from '../components/ui/AlertCard'
-import { suggestedAction, formatCurrency, formatDate } from '../utils/riskHelpers'
+import { suggestedAction, formatCurrency, formatDate, riskLabel } from '../utils/riskHelpers'
 
 const ALERT_GROUPS = [
   {
@@ -45,7 +45,7 @@ function riskTheme(level = 'verde') {
   if (level === 'rojo') {
     return {
       label: 'Revision especializada',
-      badge: 'Alto riesgo',
+      badge: 'Riesgo critico',
       color: 'var(--risk-red)',
       soft: '#fef2f2',
       tint: '#fff7f7',
@@ -157,8 +157,8 @@ function CaseHeader({ item }) {
     { label: 'Monto', value: formatCurrency(item.monto_reclamado || 0), mono: true },
     { label: 'Fecha', value: formatDate(item.fecha_ocurrencia) },
     { label: 'Proveedor', value: item.beneficiario },
-    { label: 'Nivel', value: item.nivel_riesgo },
-    { label: 'Clasificacion', value: item.clasificacion_riesgo },
+    { label: 'Nivel', value: riskLabel(item.nivel_riesgo) },
+    { label: 'Clasificacion', value: item.clasificacion_riesgo === 'alto' ? 'critico' : item.clasificacion_riesgo },
   ]
 
   return (

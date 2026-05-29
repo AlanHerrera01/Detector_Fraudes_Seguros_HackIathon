@@ -40,9 +40,9 @@ const RULE_GROUPS = [
 ]
 
 const SCORE_LEVELS = [
-  ['Verde', '0 a 40', 'Revision normal'],
-  ['Amarillo', '41 a 75', 'Revision prioritaria'],
-  ['Rojo', '76 a 100', 'Revision especializada'],
+  ['Bajo', '0 a 40', 'Revision normal'],
+  ['Medio', '41 a 75', 'Revision prioritaria'],
+  ['Critico', '76 a 100', 'Revision especializada'],
 ]
 
 export default function RulesApplied() {
@@ -101,7 +101,7 @@ export default function RulesApplied() {
 
 function RiskBadge({ level }) {
   const color = level === 'rojo' ? 'var(--risk-red)' : level === 'amarillo' ? 'var(--risk-yellow)' : 'var(--risk-green)'
-  return <span style={{ background: color, color: '#fff', borderRadius: 999, padding: '4px 8px', fontSize: 12, fontWeight: 700 }}>{level}</span>
+  return <span style={{ background: color, color: '#fff', borderRadius: 999, padding: '4px 8px', fontSize: 12, fontWeight: 700 }}>{riskLabel(level)}</span>
 }
 
 const panelStyle = {
@@ -131,3 +131,4 @@ const tdStyle = {
   padding: '10px 8px',
   verticalAlign: 'top',
 }
+import { riskLabel } from '../utils/riskHelpers'

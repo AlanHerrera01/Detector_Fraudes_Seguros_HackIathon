@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import useFraudData from '../hooks/useFraudData'
+import { riskLabel } from '../utils/riskHelpers'
 
 const LIMIT_OPTIONS = [50, 100, 500, 1000]
 
@@ -40,7 +41,7 @@ const METRIC_HELP = {
     title: 'Validación con reglas',
     body: [
       'Contrasta las alertas explicables con los casos marcados por el sistema. Si los casos de mayor riesgo tienen más alertas, el score es más trazable.',
-      'El promedio de alertas por caso muestra la intensidad general del portafolio. Las alertas en casos marcados muestran si los amarillos y rojos tienen razones claras.',
+      'El promedio de alertas por caso muestra la intensidad general del portafolio. Las alertas en casos marcados muestran si los casos medios y criticos tienen razones claras.',
       'Los casos sin alertas sirven como control: ayudan a detectar si el modelo está marcando casos sin suficiente explicación.',
     ],
   },
@@ -135,8 +136,8 @@ export default function Reports() {
 
       <section className="reports-metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
         <Metric label="Registros" value={rows.length} />
-        <Metric label="Casos rojos" value={red} />
-        <Metric label="Casos amarillos" value={yellow} />
+        <Metric label="Casos criticos" value={red} />
+        <Metric label="Casos medios" value={yellow} />
         <Metric label="Score promedio" value={avg} />
       </section>
 
@@ -271,7 +272,7 @@ function ModelMetricsSection({ metrics, loading }) {
                     <HelpButton label="Explicar modelo supervisado" onClick={() => setHelpTopic('supervised')} />
                   </h4>
                   <p style={{ color: 'var(--muted)', marginTop: 4, fontSize: 13 }}>
-                    Usa etiqueta simulada y umbral operativo amarillo o rojo.
+                    Usa etiqueta simulada y umbral operativo medio o critico.
                   </p>
                 </div>
                 <span style={hasSupervised ? successPillStyle : warningPillStyle}>{hasSupervised ? 'Disponible' : 'Sin etiqueta'}</span>
@@ -441,7 +442,7 @@ function SummaryLine({ label, value }) {
 
 function RiskBadge({ level }) {
   const color = level === 'rojo' ? 'var(--risk-red)' : level === 'amarillo' ? 'var(--risk-yellow)' : 'var(--risk-green)'
-  return <span style={{ background: color, color: '#fff', borderRadius: 999, padding: '4px 8px', fontSize: 12, fontWeight: 700 }}>{level}</span>
+  return <span style={{ background: color, color: '#fff', borderRadius: 999, padding: '4px 8px', fontSize: 12, fontWeight: 700 }}>{riskLabel(level)}</span>
 }
 
 const panelStyle = {

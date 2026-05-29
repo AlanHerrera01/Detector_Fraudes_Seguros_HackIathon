@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useFraudData from '../hooks/useFraudData'
-import { formatCurrency, formatDate } from '../utils/riskHelpers'
+import { formatCurrency, formatDate, riskLabel } from '../utils/riskHelpers'
 
 function riskColor(level) {
   if (level === 'rojo') return 'var(--risk-red)'
@@ -54,7 +54,7 @@ export default function SiniestrosList() {
               <span style={insightDotStyle(summary.top.nivel_riesgo)} />
               <span>
                 Prioridad actual: <strong>{summary.top.id_siniestro}</strong> con score <strong>{summary.top.score}/100</strong>.
-                Revisa primero los casos rojos y montos altos antes de autorizar pagos.
+                Revisa primero los casos criticos y montos altos antes de autorizar pagos.
               </span>
             </div>
           )}
@@ -62,9 +62,9 @@ export default function SiniestrosList() {
         <div style={summaryGridStyle}>
           <Metric label="Resultados" value={summary.total} />
           <Metric label="Score prom." value={summary.avg} />
-          <Metric label="Rojos" value={summary.red} tone="red" />
-          <Metric label="Amarillos" value={summary.yellow} tone="yellow" />
-          <Metric label="Verdes" value={summary.green} tone="green" />
+          <Metric label="Criticos" value={summary.red} tone="red" />
+          <Metric label="Medios" value={summary.yellow} tone="yellow" />
+          <Metric label="Bajos" value={summary.green} tone="green" />
           <Metric label="Mayor monto" value={formatCurrency(summary.maxAmount)} />
         </div>
       </section>
@@ -82,9 +82,9 @@ export default function SiniestrosList() {
         <div style={filterGroupStyle}>
           {[
             ['todos', 'Todos', summary.total],
-            ['rojo', 'Rojo', summary.red],
-            ['amarillo', 'Amarillo', summary.yellow],
-            ['verde', 'Verde', summary.green],
+            ['rojo', 'Critico', summary.red],
+            ['amarillo', 'Medio', summary.yellow],
+            ['verde', 'Bajo', summary.green],
           ].map(([value, label, count]) => (
             <button
               key={value}
@@ -139,7 +139,7 @@ export default function SiniestrosList() {
               </span>
               <span style={monoCellStyle}>{formatCurrency(s.monto_reclamado)}</span>
               <span style={mutedCellStyle}>{formatDate(s.fecha_ocurrencia)}</span>
-              <span style={levelPillStyle(s.nivel_riesgo)}>{s.clasificacion_riesgo || s.nivel_riesgo}</span>
+              <span style={levelPillStyle(s.nivel_riesgo)}>{riskLabel(s.nivel_riesgo)}</span>
               <span style={scoreCellStyle}>
                 <strong>{s.score}</strong>
                 <span style={scoreTrackStyle}>
