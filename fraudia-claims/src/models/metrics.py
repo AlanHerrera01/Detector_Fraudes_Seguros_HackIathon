@@ -1,5 +1,9 @@
 import pandas as pd
 from sklearn.metrics import auc, confusion_matrix, f1_score, precision_score, recall_score, roc_curve
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+from src.features.text_analysis import normalize_text
 
 
 def model_metrics(scored_claims: pd.DataFrame) -> dict:
@@ -45,12 +49,79 @@ def _top_anomalies(scored_claims: pd.DataFrame) -> list[dict]:
 def _nlp_metrics(scored_claims: pd.DataFrame) -> dict:
     exploded = scored_claims["senales_narrativa"].explode().dropna()
     cases_with_nlp = scored_claims["senales_narrativa"].apply(lambda value: len(value) > 0)
+    similarity = _text_similarity_metrics(scored_claims)
     return {
         "casos_con_senales_narrativa": int(cases_with_nlp.sum()),
         "porcentaje_casos_con_senales_narrativa": round(float(cases_with_nlp.mean() * 100), 2),
         "senales_mas_frecuentes": exploded.value_counts().head(10).to_dict(),
+        "similitud_textual": similarity,
         "criterio_calidad_extraccion": "Reglas transparentes sobre narrativa: vaguedad, terminos sensibles e inconsistencias.",
     }
+
+
+def _text_similarity_metrics(scored_claims: pd.DataFrame, threshold: float = 0.82) -> dict:
+    if "descripcion" not in scored_claims.columns or scored_claims.empty:
+        return _empty_similarity_metrics(threshold, "No hay columna descripcion para evaluar similitud textual.")
+
+    narratives = scored_claims[["id_siniestro", "descripcion"]].copy()
+    narratives["texto_normalizado"] = narratives["descripcion"].apply(normalize_text)
+    narratives = narratives[narratives["texto_normalizado"].str.len() >= 12].reset_index(drop=True)
+    if len(narratives) < 2:
+        return _empty_similarity_metrics(threshold, "Se requieren al menos dos narrativas utiles.")
+
+    vectorizer = TfidfVectorizer(ngram_range=(1, 2), min_df=1)
+    matrix = vectorizer.fit_transform(narratives["texto_normalizado"])
+    scores = cosine_similarity(matrix)
+
+    pairs = []
+    case_ids_with_match = set()
+    for i in range(len(narratives)):
+        for j in range(i + 1, len(narratives)):
+            score = float(scores[i, j])
+            if score < threshold:
+                continue
+            left = str(narratives.loc[i, "id_siniestro"])
+            right = str(narratives.loc[j, "id_siniestro"])
+            case_ids_with_match.update([left, right])
+            pairs.append(
+                {
+                    "id_siniestro_a": left,
+                    "id_siniestro_b": right,
+                    "similitud_coseno": round(score, 4),
+                    "extracto_a": _preview(narratives.loc[i, "descripcion"]),
+                    "extracto_b": _preview(narratives.loc[j, "descripcion"]),
+                }
+            )
+
+    pairs = sorted(pairs, key=lambda item: item["similitud_coseno"], reverse=True)[:10]
+    return {
+        "metodo": "tfidf_cosine_similarity",
+        "umbral_similitud": threshold,
+        "narrativas_evaluadas": int(len(narratives)),
+        "pares_similares": int(len(pairs)),
+        "casos_con_narrativa_similar": int(len(case_ids_with_match)),
+        "porcentaje_casos_con_narrativa_similar": round(float(len(case_ids_with_match) / len(narratives) * 100), 2),
+        "top_pares_similares": pairs,
+        "nota": "Metrica local sin consumo de tokens; ayuda a detectar relatos clonados o muy parecidos.",
+    }
+
+
+def _empty_similarity_metrics(threshold: float, reason: str) -> dict:
+    return {
+        "metodo": "tfidf_cosine_similarity",
+        "umbral_similitud": threshold,
+        "narrativas_evaluadas": 0,
+        "pares_similares": 0,
+        "casos_con_narrativa_similar": 0,
+        "porcentaje_casos_con_narrativa_similar": 0,
+        "top_pares_similares": [],
+        "nota": reason,
+    }
+
+
+def _preview(value: object, max_chars: int = 120) -> str:
+    text = str(value or "").replace("\n", " ").strip()
+    return text[:max_chars] + "..." if len(text) > max_chars else text
 
 
 def _rules_validation(scored_claims: pd.DataFrame) -> dict:

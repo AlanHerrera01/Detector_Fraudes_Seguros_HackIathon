@@ -17,6 +17,7 @@ La solucion usa IA en dos niveles:
 3. Analisis NLP reproducible:
    - Extrae senales desde `descripcion`.
    - Detecta narrativa vaga, inconsistente o con terminos de alto riesgo.
+   - Calcula similitud textual con `TF-IDF + cosine similarity` para encontrar narrativas muy parecidas sin usar tokens.
    - Usa reglas transparentes para que la demo funcione aun sin credenciales.
 
 El agente conversacional no calcula el score final. El score lo calcula el backend para mantener trazabilidad. Si Gemini falla o no tiene credenciales, puede intentar Qwen local si esta habilitado.
@@ -57,4 +58,5 @@ El endpoint `GET /model/metrics` expone:
 - Precision, recall, F1-score, matriz de confusion y AUC-ROC cuando existe `etiqueta_fraude_simulada`.
 - Porcentaje de casos marcados y ranking de anomalias por score.
 - Senales NLP mas frecuentes y porcentaje de casos con narrativa relevante.
+- Similitud textual local: pares de narrativas similares, porcentaje de casos similares y extractos comparables.
 - Validacion de reglas: promedio de alertas por caso y casos sin/con alertas.

@@ -42,7 +42,7 @@ En aseguradoras y equipos de auditoria, revisar todos los siniestros manualmente
 - Score de riesgo de 0 a 100.
 - Semaforo operativo: verde, amarillo y rojo.
 - Reglas de negocio explicables con codigos RF, S y NLP.
-- Analisis de narrativa para detectar descripciones vagas, sensibles, repetidas o inconsistentes.
+- Analisis de narrativa para detectar descripciones vagas, sensibles, repetidas, similares o inconsistentes.
 - Modelo ML persistente en `model.pkl` cuando existe etiqueta de fraude simulada.
 - Deteccion de anomalias cuando no hay etiqueta disponible.
 - Dashboard ejecutivo con KPIs, tendencias y ranking de proveedores.
@@ -96,7 +96,7 @@ FraudIA usa una estrategia hibrida, pensada para ser explicable ante un jurado o
 
 - **Reglas de negocio**: alertas trazables por documentos, fechas, proveedor, frecuencia y narrativa.
 - **ML tabular persistente**: reutiliza `fraudia-claims/data/models/model.pkl`; `RandomForestClassifier` cuando existe etiqueta; `IsolationForest` como respaldo sin etiqueta.
-- **NLP reproducible**: analisis transparente sobre texto del reclamo.
+- **NLP reproducible**: analisis transparente sobre texto del reclamo y similitud textual local con TF-IDF + cosine similarity.
 - **LLM conversacional**: Gemini responde preguntas del analista con contexto limitado al portafolio analizado.
 - **Explicabilidad**: cada caso incluye resumen ejecutivo, senales principales, recomendacion operativa y nota etica.
 

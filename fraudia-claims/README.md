@@ -28,7 +28,7 @@ Backend FastAPI de FraudIA. Este servicio recibe archivos de siniestros, normali
 - Reglas de fraude explicables por codigos.
 - Scoring final de 0 a 100.
 - Clasificacion operativa verde, amarillo y rojo.
-- NLP para narrativa vaga, sensible, repetida o inconsistente.
+- NLP para narrativa vaga, sensible, repetida, similar o inconsistente.
 - ML persistente con `model.pkl` y `RandomForestClassifier` si hay etiqueta.
 - Deteccion de anomalias con `IsolationForest` si no hay etiqueta suficiente.
 - Explicacion ejecutiva por siniestro.
@@ -266,6 +266,20 @@ Etiquetas supervisadas: si
 ```
 
 Esto no reemplaza las reglas; las complementa. El score final sigue siendo explicable y limitado a `0/100`.
+
+## Metricas NLP Sin Consumo De Tokens
+
+El endpoint `GET /model/metrics` incluye una seccion `metricas_nlp` con:
+
+- Casos con senales narrativas.
+- Porcentaje de casos con narrativa marcada.
+- Senales narrativas mas frecuentes.
+- Similitud textual local con `TF-IDF + cosine similarity`.
+- Top de pares de siniestros con narrativas muy parecidas.
+
+La similitud textual se calcula en el backend con Scikit-learn, sin llamar a Gemini y sin consumir tokens. Sirve para detectar relatos clonados o demasiado parecidos dentro del archivo activo.
+
+Como mejora futura se puede agregar evaluacion automatica de coherencia de resumen con LLM, pero se deja fuera del flujo principal para controlar consumo de tokens y evitar llamadas masivas cuando hay muchos siniestros.
 
 ## Endpoints
 

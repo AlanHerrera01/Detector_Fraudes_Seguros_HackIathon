@@ -231,6 +231,7 @@ function ModelMetricsSection({ metrics, loading }) {
   const [helpTopic, setHelpTopic] = useState(null)
   const supervised = metrics?.modelo_supervisado || {}
   const nlp = metrics?.metricas_nlp || {}
+  const similarity = nlp.similitud_textual || {}
   const rules = metrics?.validacion_reglas || {}
   const anomalies = metrics?.ranking_anomalias || []
   const confusion = supervised.matriz_confusion || []
@@ -260,7 +261,7 @@ function ModelMetricsSection({ metrics, loading }) {
             <Metric label="Casos evaluados" value={metrics?.total_casos ?? 0} />
             <Metric label="Casos marcados" value={`${metrics?.porcentaje_casos_marcados ?? 0}%`} />
             <Metric label="Señales NLP" value={nlp.casos_con_senales_narrativa ?? 0} />
-            <Metric label="Casos con alertas" value={rules.casos_con_alertas ?? 0} />
+            <Metric label="Narrativas similares" value={similarity.casos_con_narrativa_similar ?? 0} />
           </div>
 
           <div className="model-two-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 14 }}>
@@ -304,8 +305,11 @@ function ModelMetricsSection({ metrics, loading }) {
               </div>
               <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
                 <SummaryLine label="Casos con narrativa marcada" value={`${nlp.porcentaje_casos_con_senales_narrativa ?? 0}%`} />
+                <SummaryLine label="Casos con narrativa similar" value={`${similarity.porcentaje_casos_con_narrativa_similar ?? 0}%`} />
+                <SummaryLine label="Pares similares detectados" value={similarity.pares_similares ?? 0} />
                 <div style={{ color: 'var(--muted)', fontSize: 13, lineHeight: 1.45 }}>{nlp.criterio_calidad_extraccion || 'Sin criterio reportado.'}</div>
                 <TagCloud items={nlp.senales_mas_frecuentes || {}} />
+                <SimilarityPairs pairs={similarity.top_pares_similares || []} />
               </div>
             </div>
           </div>
@@ -440,6 +444,25 @@ function SummaryLine({ label, value }) {
   )
 }
 
+function SimilarityPairs({ pairs }) {
+  if (!pairs.length) return <div style={{ color: 'var(--muted)', fontSize: 13 }}>Sin narrativas similares sobre el umbral configurado.</div>
+  return (
+    <div style={{ display: 'grid', gap: 8 }}>
+      {pairs.slice(0, 3).map((pair) => (
+        <div key={`${pair.id_siniestro_a}-${pair.id_siniestro_b}`} style={similarityPairStyle}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+            <strong style={{ fontFamily: 'var(--font-mono)' }}>{pair.id_siniestro_a} / {pair.id_siniestro_b}</strong>
+            <span style={{ color: '#dbeafe', fontWeight: 800 }}>{Math.round(Number(pair.similitud_coseno || 0) * 100)}%</span>
+          </div>
+          <div style={{ color: 'var(--muted)', fontSize: 12, lineHeight: 1.4 }}>
+            {pair.extracto_a}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function RiskBadge({ level }) {
   const color = level === 'rojo' ? 'var(--risk-red)' : level === 'amarillo' ? 'var(--risk-yellow)' : 'var(--risk-green)'
   return <span style={{ background: color, color: '#fff', borderRadius: 999, padding: '4px 8px', fontSize: 12, fontWeight: 700 }}>{riskLabel(level)}</span>
@@ -540,6 +563,15 @@ const anomalyRowStyle = {
   gridTemplateColumns: '1fr auto',
   gap: 10,
   alignItems: 'center',
+  padding: 10,
+  borderRadius: 8,
+  background: 'var(--panel-bg)',
+  border: '1px solid var(--border)',
+}
+
+const similarityPairStyle = {
+  display: 'grid',
+  gap: 6,
   padding: 10,
   borderRadius: 8,
   background: 'var(--panel-bg)',
