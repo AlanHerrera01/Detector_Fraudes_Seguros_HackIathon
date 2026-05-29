@@ -1,37 +1,68 @@
 # FraudIA Claims - Backend
 
-Backend FastAPI para analizar siniestros, calcular riesgo, explicar alertas y responder consultas del agente IA.
+Backend FastAPI de FraudIA. Este servicio recibe archivos de siniestros, normaliza datos, calcula scores de riesgo, aplica reglas explicables, ejecuta analisis NLP, genera reportes, administra historico en PostgreSQL/Neon y expone un agente IA con Gemini.
 
-La API procesa CSV, Excel y PDF. CSV/Excel actualizan el dataset activo; PDF se usa como soporte narrativo. El backend mantiene historico en PostgreSQL o CSV local para mejorar el componente ML sin mezclar visualmente archivos anteriores en el dashboard.
+> El backend entrega senales de posible fraude para revision humana. No confirma fraude, no acusa personas y no toma decisiones automaticas de rechazo.
 
-## Stack
+## Stack Tecnico
 
-- Python 3.11 recomendado
-- FastAPI
-- Pandas
-- Scikit-learn
-- PostgreSQL opcional
-- Gemini API
-- Ollama + Qwen opcional como respaldo local
-- Pytest
+- Python 3.11 recomendado.
+- FastAPI.
+- Uvicorn.
+- Pandas y NumPy.
+- Scikit-learn.
+- PostgreSQL con `psycopg`.
+- Google Gemini.
+- Pytest.
+- Railway para despliegue cloud.
+- Neon como PostgreSQL gestionado.
 
 ## Capacidades
 
-- Ingestion de CSV y Excel con normalizacion de encabezados.
-- Seleccion automatica de hoja de siniestros en Excel.
-- Analisis de PDF como soporte narrativo.
-- Features de riesgo tabular.
-- Reglas explicables RF, S y NLP.
+- API REST documentada con Swagger.
+- Carga de `.csv`, `.xlsx`, `.xls` y `.pdf`.
+- Deteccion automatica de hojas utiles en Excel.
+- Normalizacion de columnas con nombres humanos.
+- Dataset activo para dashboard, reportes y agente.
+- Historico acumulado en PostgreSQL o CSV local.
+- Reglas de fraude explicables por codigos.
+- Scoring final de 0 a 100.
+- Clasificacion operativa verde, amarillo y rojo.
+- NLP para narrativa vaga, sensible, repetida o inconsistente.
 - ML supervisado con `RandomForestClassifier` si hay etiqueta.
-- Deteccion de anomalias con `IsolationForest` si no hay etiqueta.
-- NLP transparente para narrativa vaga, sensible, inconsistente o clonada.
-- Score final 0-100 y semaforo verde/amarillo/rojo.
+- Deteccion de anomalias con `IsolationForest` si no hay etiqueta suficiente.
 - Explicacion ejecutiva por siniestro.
-- Metricas tecnicas para jurado.
-- Reportes JSON, CSV y PDF.
-- Agente IA con Gemini.
+- Reportes de auditoria en JSON, CSV y PDF.
+- Ranking y redes de proveedores.
+- Agente IA conversacional con Gemini.
+
+## Estructura
+
+```text
+fraudia-claims/
+  README.md
+  requirements.txt
+  Procfile
+  railpack.json
+  .env.example
+  src/
+    app/              FastAPI y endpoints
+    ai_agent/         Gemini, fallback estructurado y contexto del agente
+    db/               PostgreSQL, Neon e historico
+    explainability/   Explicaciones ejecutivas
+    features/         Scoring, features y NLP
+    ingestion/        Carga CSV, Excel, PDF e historico local
+    models/           Modelos y metricas
+    rules/            Reglas de negocio
+  data/
+    synthetic/        Datasets sinteticos de prueba
+  docs/               Documentacion tecnica
+  tests/              Pruebas unitarias
+```
 
 ## Instalacion Local
+
+En Windows/PowerShell:
 
 ```bash
 cd fraudia-claims
@@ -41,24 +72,71 @@ pip install -r requirements.txt
 copy .env.example .env
 ```
 
-Evita Python 3.14 para este proyecto: algunas librerias de datos pueden intentar compilarse en Windows.
+Evita Python 3.14 para este proyecto en Windows, porque algunas librerias de datos pueden requerir compilacion o no tener binarios compatibles.
 
-## Variables
+## Configuracion Local Rapida
 
-Configura `fraudia-claims/.env`. No subir este archivo al repositorio.
+Edita `fraudia-claims/.env`. Para levantar el backend sin base de datos y con datos locales:
 
-Gemini:
+```env
+APP_ENV=local
+DEFAULT_DATA_PATH=data/synthetic/siniestros_sinteticos.csv
+DB_ENABLED=false
+AI_PROVIDER=gemini
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-2.5-flash
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+CORS_ORIGIN_REGEX=https://.*\.vercel\.app
+```
+
+Si no configuras `GEMINI_API_KEY`, el backend puede seguir funcionando para scoring y reportes, pero el agente IA no tendra respuesta real de Gemini.
+
+## Ejecucion Local
+
+```bash
+cd fraudia-claims
+.venv\Scripts\activate
+$env:PYTHONPATH='.'
+uvicorn src.app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+URLs locales:
+
+```text
+API:      http://127.0.0.1:8000
+Swagger:  http://127.0.0.1:8000/docs
+Health:   http://127.0.0.1:8000/health
+DB:       http://127.0.0.1:8000/db/status
+```
+
+## Variables De Entorno
+
+### Aplicacion y CORS
+
+```env
+APP_ENV=local
+DEFAULT_DATA_PATH=data/synthetic/siniestros_sinteticos.csv
+CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://tu-frontend.vercel.app
+CORS_ORIGIN_REGEX=https://.*\.vercel\.app
+```
+
+`CORS_ORIGINS` debe incluir el dominio real del frontend en Vercel cuando se despliega.
+
+### Gemini
 
 ```env
 AI_PROVIDER=gemini
 GEMINI_API_KEY=tu_api_key
 GEMINI_MODEL=gemini-2.5-flash
-GEMINI_TIMEOUT_SECONDS=12
+GEMINI_TIMEOUT_SECONDS=8
 GEMINI_MAX_CONTEXT_CHARS=6000
-GEMINI_MAX_OUTPUT_TOKENS=700
+GEMINI_MAX_OUTPUT_TOKENS=875
+GEMINI_TEMPERATURE=0.45
+GEMINI_TOP_P=0.9
+GEMINI_VERIFY_SSL=true
 ```
 
-PostgreSQL:
+### PostgreSQL Local O Neon
 
 ```env
 DB_ENABLED=true
@@ -66,47 +144,52 @@ DB_HOST=127.0.0.1
 DB_PORT=5432
 DB_NAME=fraudia_claims
 DB_USER=postgres
-DB_PASSWORD=tu_password
+DB_PASSWORD=your_postgres_password_here
+DB_SCHEMA=public
+DB_TABLE=siniestros
 ```
 
-Qwen local opcional:
+Para Neon, reemplaza `DB_HOST`, `DB_NAME`, `DB_USER` y `DB_PASSWORD` por los valores entregados por Neon.
+
+### Qwen Local Opcional
 
 ```env
-LOCAL_LLM_ENABLED=true
+LOCAL_LLM_ENABLED=false
 LOCAL_LLM_MODEL=qwen2.5:3b
 LOCAL_LLM_ENDPOINT=http://127.0.0.1:11434/api/generate
+LOCAL_LLM_TIMEOUT_SECONDS=45
 ```
 
-## Ejecucion
+Este respaldo requiere Ollama instalado y el modelo descargado. No es necesario para el flujo principal con Gemini.
+
+## Base De Datos
+
+El backend soporta dos modos:
+
+- **CSV local**: ideal para desarrollo rapido. Se usa cuando `DB_ENABLED=false`.
+- **PostgreSQL/Neon**: recomendado para demo desplegada y persistencia. Se usa cuando `DB_ENABLED=true`.
+
+Inicializar base:
 
 ```bash
-cd fraudia-claims
-$env:PYTHONPATH='.'
-uvicorn src.app.main:app --host 127.0.0.1 --port 8000 --reload
+curl -X POST http://127.0.0.1:8000/db/init
 ```
 
-Swagger:
+Tambien puedes ejecutar el endpoint desde Swagger en:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-## Pruebas
+El inicializador crea la tabla principal, tablas complementarias y carga datos sinteticos si la tabla esta vacia.
 
-```bash
-cd fraudia-claims
-$env:PYTHONPATH='.'
-pytest -q
-```
-
-## Ingestion
+## Ingestion De Archivos
 
 Formatos soportados:
 
-- `.csv`
-- `.xlsx`
-- `.xls`
-- `.pdf`
+- `.csv`: dataset estructurado de siniestros.
+- `.xlsx` y `.xls`: dataset estructurado con hojas y encabezados humanos.
+- `.pdf`: soporte documental; se extrae texto y se calculan senales narrativas, pero no reemplaza el dataset tabular.
 
 Columnas minimas o equivalentes:
 
@@ -121,51 +204,66 @@ El loader reconoce encabezados como:
 - `ID Poliza`
 - `ID Asegurado`
 - `Fecha Ocurrencia`
+- `Fecha Reporte`
 - `Monto Reclamado ($)`
 - `Descripcion del Evento`
 
-## Historico Y Aprendizaje
+## Historico Y Dataset Activo
 
 El sistema separa dos conceptos:
 
-- **Dataset activo**: archivo que el usuario acaba de subir y que se muestra en dashboard/agente/reportes.
-- **Historico acumulado**: cargas anteriores guardadas para entrenar o comparar el componente ML.
+- **Dataset activo**: ultimo archivo CSV/Excel cargado. Es lo que ve el dashboard, reportes y agente.
+- **Historico acumulado**: cargas anteriores almacenadas para aprendizaje y comparacion.
 
-Con PostgreSQL activo:
+Con PostgreSQL/Neon:
 
-- Se guarda cada upload como batch.
-- El dashboard ve el ultimo batch activo.
-- El ML puede entrenar con todo el historico.
+- Cada carga se guarda como batch.
+- El dashboard consulta el ultimo batch activo.
+- Las metricas pueden usar historico acumulado.
+- Los reportes pueden filtrar por batch, fecha o proveedor.
 
 Sin PostgreSQL:
 
-- Se guarda historico local en `data/processed/upload_history.csv`.
-- Se guarda el activo local en `data/processed/active_upload.csv`.
-
-`data/processed/` esta ignorado por git.
+- El historico se guarda en `data/processed/upload_history.csv`.
+- El activo se guarda en `data/processed/active_upload.csv`.
+- `data/processed/` debe permanecer fuera de git.
 
 ## Endpoints
+
+### Salud y base de datos
 
 - `GET /health`
 - `GET /db/status`
 - `POST /db/init`
+
+### Siniestros
+
 - `POST /claims/upload`
 - `GET /claims?limit=500`
 - `GET /claims/{id_siniestro}`
 - `POST /claims/{id_siniestro}/score`
 - `GET /claims/{id_siniestro}/explanation`
+
+### Alertas, proveedores y redes
+
 - `GET /alerts/top`
 - `GET /providers/ranking`
 - `GET /networks/providers`
+
+### Estadisticas, modelo y reportes
+
 - `GET /stats/summary`
 - `GET /model/metrics`
 - `GET /reports/filters`
 - `GET /reports/audit`
 - `GET /reports/audit.csv`
 - `GET /reports/audit.pdf`
+
+### Agente IA
+
 - `POST /agent/query`
 
-Ejemplo agente:
+Ejemplo:
 
 ```json
 {
@@ -174,37 +272,76 @@ Ejemplo agente:
 }
 ```
 
-## Metricas
+## Pruebas
 
-`GET /model/metrics` devuelve:
-
-- Total de casos evaluados.
-- Porcentaje marcado amarillo/rojo.
-- Distribucion de riesgo.
-- Ranking de anomalias.
-- NLP narrativo.
-- Validacion con reglas.
-- Metricas supervisadas si existe `etiqueta_fraude_simulada` con mas de una clase.
-
-Si no hay etiqueta, el panel indicara que no hay evaluacion supervisada disponible, pero el sistema sigue priorizando con reglas, NLP y anomalias.
-
-## Estructura
-
-```text
-src/
-  app/              FastAPI y endpoints
-  ai_agent/         Agente Gemini/Qwen y fallback estructurado
-  db/               PostgreSQL e historico
-  explainability/   Explicaciones ejecutivas
-  features/         Features tabulares y NLP
-  ingestion/        Carga CSV/Excel/PDF e historico local
-  models/           ML y metricas
-  rules/            Reglas de fraude explicables
-tests/              Pruebas unitarias
-docs/               Arquitectura, etica y uso IA
-data/               Datos sinteticos y carpetas locales
+```bash
+cd fraudia-claims
+.venv\Scripts\activate
+$env:PYTHONPATH='.'
+pytest -q
 ```
 
-## Etica
+Las pruebas cubren reglas, scoring, explicabilidad, NLP, contexto del agente e historico local.
 
-El backend nunca debe afirmar fraude confirmado. Usa lenguaje de alerta, riesgo o revision humana. Ver `docs/etica_sesgos.md`.
+## Despliegue En Railway
+
+El backend esta preparado para Railway. Comando de inicio:
+
+```bash
+python -m uvicorn src.app.main:app --host 0.0.0.0 --port $PORT
+```
+
+Pasos recomendados:
+
+1. Crear un servicio en Railway conectado al repositorio.
+2. Configurar el root del servicio en `fraudia-claims` si Railway no lo detecta automaticamente.
+3. Agregar las variables de entorno del backend.
+4. Configurar credenciales de Neon.
+5. Activar `DB_ENABLED=true`.
+6. Desplegar.
+7. Verificar `https://tu-backend.railway.app/health`.
+8. Ejecutar `POST /db/init`.
+9. Agregar el dominio de Vercel en `CORS_ORIGINS`.
+
+Archivos relacionados:
+
+- `../railway.json`
+- `railpack.json`
+- `Procfile`
+
+## Configuracion Con Neon
+
+Variables tipicas en Railway:
+
+```env
+DB_ENABLED=true
+DB_HOST=ep-xxxx.region.aws.neon.tech
+DB_PORT=5432
+DB_NAME=neondb
+DB_USER=neondb_owner
+DB_PASSWORD=tu_password_neon
+DB_SCHEMA=public
+DB_TABLE=siniestros
+```
+
+Si Neon entrega una cadena de conexion completa, separa los valores en las variables anteriores porque el backend usa host, puerto, base, usuario y password por separado.
+
+## Buenas Practicas
+
+- No subir `.env`.
+- No exponer `GEMINI_API_KEY` en el frontend.
+- Configurar CORS con dominios concretos.
+- Validar `/health` despues de cada despliegue.
+- Ejecutar pruebas antes de una demo.
+- Mantener lenguaje de riesgo y revision humana, no de fraude confirmado.
+
+## Documentacion Tecnica
+
+Consulta `docs/` para mas detalle:
+
+- `arquitectura.md`
+- `modelo_datos.md`
+- `reglas_negocio.md`
+- `uso_ia.md`
+- `etica_sesgos.md`
+- `limitaciones.md`
