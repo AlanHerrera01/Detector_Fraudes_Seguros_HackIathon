@@ -328,6 +328,10 @@ def stats_summary() -> dict:
     priority = df["nivel_riesgo"].isin(["rojo", "amarillo"])
     alert_count = df["alertas"].apply(len) if "alertas" in df.columns else pd.Series([0] * len(df))
     ahorro_potencial = float((df.loc[priority, "monto_reclamado"].fillna(0) * 0.12).sum())
+    uploads = list_upload_batches() if _DB_READY else []
+    latest_upload = uploads[0] if uploads else {}
+    local_active = Path("data/processed/active_upload.csv")
+    active_source_filename = latest_upload.get("source_filename") or (local_active.name if local_active.exists() else Path(DEFAULT_DATA_PATH).name)
     return {
         "total_siniestros": int(len(df)),
         "casos_rojos": int((df["nivel_riesgo"] == "rojo").sum()),
@@ -337,6 +341,11 @@ def stats_summary() -> dict:
         "casos_con_alertas": int((alert_count > 0).sum()),
         "score_promedio": round(float(df["score_riesgo"].mean()), 2),
         "ahorro_potencial": round(ahorro_potencial, 2),
+        "active_source_filename": active_source_filename,
+        "active_dataset_label": "Ultimo archivo cargado" if latest_upload or local_active.exists() else "Dataset base",
+        "active_dataset_storage": "postgresql" if _DB_READY else "csv",
+        "active_upload_batch_id": latest_upload.get("upload_batch_id"),
+        "active_uploaded_at": latest_upload.get("uploaded_at"),
     }
 
 

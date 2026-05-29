@@ -266,6 +266,7 @@ textarea::placeholder {
   }
 
   .dashboard-header,
+  .active-dataset-grid,
   .dashboard-action-grid,
   .portfolio-header,
   .portfolio-summary,
@@ -381,6 +382,7 @@ textarea::placeholder {
   }
 
   .dashboard-stats-grid,
+  .active-dataset-grid,
   .dashboard-action-grid,
   .dashboard-three-grid,
   .dashboard-two-grid,

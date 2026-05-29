@@ -72,7 +72,17 @@ export function useFraudData() {
   return useMemo(() => ({
     getDashboardStats: async () => {
       if (USE_MOCK) {
-        return { total_siniestros: 1284, casos_rojos: 87, casos_amarillos: 213, casos_verdes: 984, score_promedio: 42.7 }
+        return {
+          total_siniestros: 1284,
+          casos_rojos: 87,
+          casos_amarillos: 213,
+          casos_verdes: 984,
+          score_promedio: 42.7,
+          ahorro_potencial: 18450000,
+          active_source_filename: 'siniestros_demo.csv',
+          active_dataset_label: 'Archivo demo',
+          active_dataset_storage: 'mock',
+        }
       }
       return api.getDashboardStats()
     },

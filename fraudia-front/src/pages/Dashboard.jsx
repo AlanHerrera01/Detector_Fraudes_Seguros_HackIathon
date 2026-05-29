@@ -15,6 +15,13 @@ function shortDateLabel(value) {
   return date.toLocaleDateString('es-CO', { month: 'short', day: '2-digit' })
 }
 
+function dateTimeLabel(value) {
+  if (!value) return 'Sesion actual'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Sesion actual'
+  return date.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })
+}
+
 function topLabelFromMap(map, fallback) {
   const [label] = Object.entries(map).sort((a, b) => b[1] - a[1])[0] || []
   return label || fallback
@@ -74,6 +81,7 @@ export default function Dashboard() {
   const [uploadResult, setUploadResult] = useState(null)
   const [uploadError, setUploadError] = useState('')
   const [uploadNotice, setUploadNotice] = useState('')
+  const [activeDataset, setActiveDataset] = useState(null)
   const nav = useNavigate()
   const location = useLocation()
 
@@ -90,6 +98,14 @@ export default function Dashboard() {
       setStats(statsData)
       setClaims(claimsData.items || claimsData || [])
       setNetworks(networksData || [])
+      setActiveDataset((current) => ({
+        filename: statsData.active_source_filename || current?.filename || 'Archivo no identificado',
+        label: statsData.active_dataset_label || current?.label || 'Archivo activo',
+        storage: statsData.active_dataset_storage || current?.storage || 'api',
+        uploadedAt: statsData.active_uploaded_at || current?.uploadedAt || null,
+        visibleClaims: statsData.total_siniestros ?? (claimsData.items || claimsData || []).length,
+        trainingClaims: current?.trainingClaims ?? null,
+      }))
       setLastUpdated(new Date())
     } catch (exc) {
       setError(exc.message || 'Error desconocido al cargar datos')
@@ -137,6 +153,14 @@ export default function Dashboard() {
       setUploadProgress(96)
       setUploadResult(result)
       await refreshDashboard()
+      setActiveDataset({
+        filename: result?.source_filename || uploadFile.name,
+        label: result?.document_type === 'pdf' ? 'PDF analizado como soporte' : 'Ultimo archivo cargado',
+        storage: result?.storage || 'api',
+        uploadedAt: result?.uploaded_at || new Date().toISOString(),
+        visibleClaims: result?.visible_claims ?? result?.total_claims ?? null,
+        trainingClaims: result?.training_claims ?? null,
+      })
       setUploadProgress(100)
       setUploadNotice(result?.message || 'Archivo cargado. Dashboard actualizado.')
       await new Promise((resolve) => setTimeout(resolve, 900))
@@ -341,6 +365,8 @@ export default function Dashboard() {
         </div>
       )}
 
+      <ActiveDatasetPanel dataset={activeDataset} total={summary.total} />
+
       <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 14 }}>
         <StatCard label="Siniestros analizados" value={summary.total} accent="var(--accent)" hint="Archivo activo" info="Total de casos cargados para revision." />
         <StatCard label="Casos criticos" value={summary.critical} accent="#7f1d1d" hint="Auditoria inmediata" info="Casos con score critico o cercano a 90+." />
@@ -501,6 +527,46 @@ export default function Dashboard() {
         />
       )}
     </div>
+  )
+}
+
+function ActiveDatasetPanel({ dataset, total }) {
+  const filename = dataset?.filename || 'Dataset base'
+  const label = dataset?.label || 'Archivo activo'
+  const visibleClaims = dataset?.visibleClaims ?? total
+  const trainingClaims = dataset?.trainingClaims
+  const storage = dataset?.storage || 'api'
+
+  return (
+    <Panel style={{ padding: 16 }}>
+      <div className="active-dataset-grid" style={activeDatasetGridStyle}>
+        <div style={{ minWidth: 0 }}>
+          <span style={activeDatasetEyebrowStyle}>{label}</span>
+          <h3 style={{ margin: '5px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {filename}
+          </h3>
+          <p style={{ color: 'var(--muted)', marginTop: 6 }}>
+            Este es el archivo que alimenta los indicadores, graficas, reportes y agente del dashboard.
+          </p>
+        </div>
+
+        <div style={activeDatasetMetricStyle}>
+          <span>Casos en este archivo</span>
+          <strong style={activeDatasetMetricValueStyle}>{visibleClaims ?? 0}</strong>
+        </div>
+
+        <div style={activeDatasetMetricStyle}>
+          <span>Historico entrenamiento</span>
+          <strong style={activeDatasetMetricValueStyle}>{trainingClaims ?? 'N/A'}</strong>
+        </div>
+
+        <div style={activeDatasetMetricStyle}>
+          <span>Almacenamiento</span>
+          <strong style={activeDatasetMetricValueStyle}>{String(storage).toUpperCase()}</strong>
+          <small style={{ color: 'var(--muted)' }}>{dateTimeLabel(dataset?.uploadedAt)}</small>
+        </div>
+      </div>
+    </Panel>
   )
 }
 
@@ -808,6 +874,39 @@ const panelHeaderStyle = {
   gap: 12,
   alignItems: 'start',
   marginBottom: 8,
+}
+
+const activeDatasetGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1.6fr) repeat(3, minmax(150px, 0.5fr))',
+  gap: 12,
+  alignItems: 'stretch',
+}
+
+const activeDatasetEyebrowStyle = {
+  color: 'var(--accent)',
+  fontSize: 12,
+  fontWeight: 900,
+  textTransform: 'uppercase',
+}
+
+const activeDatasetMetricStyle = {
+  display: 'grid',
+  gap: 5,
+  alignContent: 'center',
+  minHeight: 86,
+  padding: 12,
+  borderRadius: 8,
+  background: '#111827',
+  border: '1px solid var(--border-light)',
+  color: 'var(--muted)',
+  fontSize: 12,
+}
+
+const activeDatasetMetricValueStyle = {
+  color: 'var(--text)',
+  fontSize: 20,
+  lineHeight: 1.05,
 }
 
 const portfolioHeaderStyle = {
