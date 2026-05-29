@@ -3,135 +3,854 @@
 << /Type /Catalog /Pages 2 0 R >>
 endobj
 2 0 obj
-<< /Type /Pages /Kids [5 0 R 7 0 R] /Count 2 >>
+<< /Type /Pages /Kids [6 0 R 8 0 R] /Count 2 >>
 endobj
 3 0 obj
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
 endobj
 4 0 obj
-<< /Length 2401 >>
-stream
-BT
-/F1 10 Tf
-50 790 Td
-14 TL
-(FraudIA - Reporte de auditoria) Tj
-T*
-(Generado: 2026-05-27 20:05) Tj
-T*
-(Alerta para revision humana; no confirma fraude ni decide rechazos automaticamente.) Tj
-T*
-() Tj
-T*
-(Resumen ejecutivo) Tj
-T*
-(- Registros incluidos: 3) Tj
-T*
-(- Score promedio: 90.0) Tj
-T*
-(- Semaforo: 2 rojo | 1 amarillo | 0 verde) Tj
-T*
-(- Casos prioritarios: 3) Tj
-T*
-() Tj
-T*
-(Tipos de alertas mas frecuentes) Tj
-T*
-(- RF-06: 3 caso\(s\) - demora en denuncia por robo) Tj
-T*
-(- S-02: 3 caso\(s\) - reporte tardio) Tj
-T*
-(- S-03: 3 caso\(s\) - frecuencia del asegurado) Tj
-T*
-(- S-06: 3 caso\(s\) - proveedor recurrente) Tj
-T*
-(- S-07: 3 caso\(s\) - documentos incompletos) Tj
-T*
-(- S-08: 3 caso\(s\) - sin tercero identificado) Tj
-T*
-(- S-09: 3 caso\(s\) - monto cercano a suma asegurada) Tj
-T*
-(- NLP-03: 3 caso\(s\) - narrativa de alto riesgo) Tj
-T*
-(- RF-01: 2 caso\(s\) - perdida total por robo) Tj
-T*
-(- RF-02: 2 caso\(s\) - documentos inconsistentes) Tj
-T*
-() Tj
-T*
-(Casos prioritarios) Tj
-T*
-(UPL-0002 | ROJO | score 100 | Taller Horizonte) Tj
-T*
-(Cobertura/ciudad: Perdida Total por Robo - Medellin | Monto: 28500.0) Tj
-T*
-(Alertas: RF-01, RF-02, RF-03, RF-04, S-01, RF-06, S-02, S-03, S-06, S-07, S-08, S-09, NLP-01, NLP-03) Tj
-T*
-(Lectura: El siniestro UPL-0002 tiene score 100/100 y nivel rojo. Requiere revision humana por estas senales: Cobertura de perdida tota) Tj
-T*
-() Tj
-T*
-(UPL-0006 | ROJO | score 100 | Taller Horizonte) Tj
-T*
-(Cobertura/ciudad: Perdida Total por Robo - Cali | Monto: 33000.0) Tj
-T*
-(Alertas: RF-01, RF-02, RF-04, RF-05, RF-06, S-02, S-03, S-04, S-06, S-07, S-08, S-09, NLP-03) Tj
-T*
-(Lectura: El siniestro UPL-0006 tiene score 100/100 y nivel rojo. Requiere revision humana por estas senales: Cobertura de perdida tota) Tj
-T*
-() Tj
-T*
-(UPL-0004 | AMARILLO | score 70 | Taller Horizonte) Tj
-T*
-(Cobertura/ciudad: Robo - Barranquilla | Monto: 16200.0) Tj
-T*
-(Alertas: S-01, RF-06, S-02, S-03, S-04, S-06, S-07, S-08, S-09, NLP-03) Tj
-T*
-(Lectura: El siniestro UPL-0004 tiene score 70/100 y nivel amarillo. Requiere revision humana por estas senales: El siniestro ocurrio c) Tj
-T*
-() Tj
-T*
-(Notas de lectura) Tj
-T*
-(- Rojo: requiere revision especializada y validacion documental prioritaria.) Tj
-T*
-(- Amarillo: requiere revision dirigida antes de cierre operativo.) Tj
-T*
-(- Verde: flujo normal salvo que auditoria solicite validacion adicional.) Tj
-T*
-ET
-endstream
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
 endobj
 5 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 4 0 R >>
-endobj
-6 0 obj
-<< /Length 129 >>
+<< /Length 7132 >>
 stream
+q
+1.000 1.000 1.000 rg
+0.00 0.00 612.00 792.00 re
+f
+Q
+q
+0.059 0.090 0.165 rg
+0.00 764.00 612.00 28.00 re
+f
+Q
 BT
-/F1 10 Tf
-50 790 Td
-14 TL
-(- Este reporte orienta priorizacion; no confirma fraude ni recomienda rechazo automatico.) Tj
-T*
+1.000 1.000 1.000 rg
+/F2 9.00 Tf
+42.00 775.00 Td
+(FraudIA | Reporte de auditoria) Tj
+ET
+BT
+0.796 0.835 0.882 rg
+/F1 8.00 Tf
+520.00 775.00 Td
+(Pag. 1) Tj
+ET
+q
+0.059 0.090 0.165 rg
+0.00 702.00 612.00 90.00 re
+f
+Q
+q
+0.078 0.722 0.651 rg
+0.00 702.00 12.00 90.00 re
+f
+Q
+BT
+1.000 1.000 1.000 rg
+/F2 24.00 Tf
+42.00 752.00 Td
+(FraudIA) Tj
+ET
+BT
+0.800 0.984 0.945 rg
+/F2 15.00 Tf
+42.00 730.00 Td
+(Reporte ejecutivo de auditoria) Tj
+ET
+BT
+0.580 0.639 0.722 rg
+/F2 9.00 Tf
+430.00 752.00 Td
+(Generado) Tj
+ET
+BT
+1.000 1.000 1.000 rg
+/F1 11.00 Tf
+430.00 735.00 Td
+(2026-05-29 11:32) Tj
+ET
+q
+0.925 0.992 0.961 rg
+0.600 0.965 0.894 RG
+42.00 648.00 528.00 34.00 re
+B
+Q
+BT
+0.059 0.463 0.431 rg
+/F2 9.50 Tf
+54.00 667.00 Td
+(Alerta para revision humana. No confirma fraude ni decide rechazos automaticamente.) Tj
+ET
+BT
+0.059 0.090 0.165 rg
+/F2 15.00 Tf
+42.00 624.00 Td
+(Resumen ejecutivo) Tj
+ET
+q
+0.078 0.722 0.651 rg
+42.00 615.00 80.00 2.00 re
+f
+Q
+q
+0.973 0.980 0.988 rg
+0.886 0.910 0.941 RG
+42.00 534.00 124.50 66.00 re
+B
+Q
+BT
+0.392 0.455 0.545 rg
+/F2 7.50 Tf
+52.00 582.00 Td
+(REGISTROS) Tj
+ET
+BT
+0.059 0.090 0.165 rg
+/F2 16.00 Tf
+52.00 560.00 Td
+(8) Tj
+ET
+BT
+0.392 0.455 0.545 rg
+/F1 8.00 Tf
+52.00 543.00 Td
+(Siniestros incluidos) Tj
+ET
+q
+0.973 0.980 0.988 rg
+0.886 0.910 0.941 RG
+176.50 534.00 124.50 66.00 re
+B
+Q
+BT
+0.392 0.455 0.545 rg
+/F2 7.50 Tf
+186.50 582.00 Td
+(SCORE PROMEDIO) Tj
+ET
+BT
+0.059 0.090 0.165 rg
+/F2 16.00 Tf
+186.50 560.00 Td
+(46.38) Tj
+ET
+BT
+0.392 0.455 0.545 rg
+/F1 8.00 Tf
+186.50 543.00 Td
+(Riesgo consolidado) Tj
+ET
+q
+0.973 0.980 0.988 rg
+0.886 0.910 0.941 RG
+311.00 534.00 124.50 66.00 re
+B
+Q
+BT
+0.392 0.455 0.545 rg
+/F2 7.50 Tf
+321.00 582.00 Td
+(PRIORITARIOS) Tj
+ET
+BT
+0.059 0.090 0.165 rg
+/F2 16.00 Tf
+321.00 560.00 Td
+(3) Tj
+ET
+BT
+0.392 0.455 0.545 rg
+/F1 8.00 Tf
+321.00 543.00 Td
+(Rojo + amarillo) Tj
+ET
+q
+0.973 0.980 0.988 rg
+0.886 0.910 0.941 RG
+445.50 534.00 124.50 66.00 re
+B
+Q
+BT
+0.392 0.455 0.545 rg
+/F2 7.50 Tf
+455.50 582.00 Td
+(MONTO AUDITADO) Tj
+ET
+BT
+0.059 0.090 0.165 rg
+/F2 16.00 Tf
+455.50 560.00 Td
+($97,500) Tj
+ET
+BT
+0.392 0.455 0.545 rg
+/F1 8.00 Tf
+455.50 543.00 Td
+(Valor reclamado) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F2 10.00 Tf
+42.00 510.00 Td
+(Distribucion del semaforo) Tj
+ET
+q
+0.863 0.149 0.149 rg
+42.00 490.00 132.00 13.00 re
+f
+Q
+q
+0.961 0.620 0.043 rg
+174.00 490.00 66.00 13.00 re
+f
+Q
+q
+0.086 0.639 0.290 rg
+240.00 490.00 330.00 13.00 re
+f
+Q
+BT
+0.278 0.333 0.412 rg
+/F1 8.50 Tf
+42.00 476.00 Td
+(2 rojo   |   1 amarillo   |   5 verde) Tj
+ET
+BT
+0.059 0.090 0.165 rg
+/F2 15.00 Tf
+42.00 458.00 Td
+(Alertas mas frecuentes) Tj
+ET
+q
+0.078 0.722 0.651 rg
+42.00 449.00 80.00 2.00 re
+f
+Q
+BT
+0.059 0.090 0.165 rg
+/F2 9.50 Tf
+42.00 430.00 Td
+(S-03) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+90.00 430.00 Td
+(frecuencia del asegurado) Tj
+ET
+q
+0.886 0.910 0.941 rg
+327.00 422.00 230.00 8.00 re
+f
+Q
+q
+0.078 0.722 0.651 rg
+327.00 422.00 230.00 8.00 re
+f
+Q
+BT
+0.059 0.090 0.165 rg
+/F2 8.50 Tf
+567.00 429.00 Td
+(4) Tj
+ET
+BT
+0.059 0.090 0.165 rg
+/F2 9.50 Tf
+42.00 408.00 Td
+(S-07) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+90.00 408.00 Td
+(documentos incompletos) Tj
+ET
+q
+0.886 0.910 0.941 rg
+327.00 400.00 230.00 8.00 re
+f
+Q
+q
+0.078 0.722 0.651 rg
+327.00 400.00 230.00 8.00 re
+f
+Q
+BT
+0.059 0.090 0.165 rg
+/F2 8.50 Tf
+567.00 407.00 Td
+(4) Tj
+ET
+BT
+0.059 0.090 0.165 rg
+/F2 9.50 Tf
+42.00 386.00 Td
+(S-08) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+90.00 386.00 Td
+(sin tercero identificado) Tj
+ET
+q
+0.886 0.910 0.941 rg
+327.00 378.00 230.00 8.00 re
+f
+Q
+q
+0.078 0.722 0.651 rg
+327.00 378.00 230.00 8.00 re
+f
+Q
+BT
+0.059 0.090 0.165 rg
+/F2 8.50 Tf
+567.00 385.00 Td
+(4) Tj
+ET
+BT
+0.059 0.090 0.165 rg
+/F2 9.50 Tf
+42.00 364.00 Td
+(S-09) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+90.00 364.00 Td
+(monto cercano a suma asegurada) Tj
+ET
+q
+0.886 0.910 0.941 rg
+327.00 356.00 230.00 8.00 re
+f
+Q
+q
+0.078 0.722 0.651 rg
+327.00 356.00 230.00 8.00 re
+f
+Q
+BT
+0.059 0.090 0.165 rg
+/F2 8.50 Tf
+567.00 363.00 Td
+(4) Tj
+ET
+BT
+0.059 0.090 0.165 rg
+/F2 9.50 Tf
+42.00 342.00 Td
+(S-01) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+90.00 342.00 Td
+(borde cercano de vigencia) Tj
+ET
+q
+0.886 0.910 0.941 rg
+327.00 334.00 230.00 8.00 re
+f
+Q
+q
+0.078 0.722 0.651 rg
+327.00 334.00 172.50 8.00 re
+f
+Q
+BT
+0.059 0.090 0.165 rg
+/F2 8.50 Tf
+567.00 341.00 Td
+(3) Tj
+ET
+BT
+0.059 0.090 0.165 rg
+/F2 9.50 Tf
+42.00 320.00 Td
+(RF-06) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+90.00 320.00 Td
+(demora en denuncia por robo) Tj
+ET
+q
+0.886 0.910 0.941 rg
+327.00 312.00 230.00 8.00 re
+f
+Q
+q
+0.078 0.722 0.651 rg
+327.00 312.00 172.50 8.00 re
+f
+Q
+BT
+0.059 0.090 0.165 rg
+/F2 8.50 Tf
+567.00 319.00 Td
+(3) Tj
+ET
+BT
+0.059 0.090 0.165 rg
+/F2 9.50 Tf
+42.00 298.00 Td
+(S-02) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+90.00 298.00 Td
+(reporte tardio) Tj
+ET
+q
+0.886 0.910 0.941 rg
+327.00 290.00 230.00 8.00 re
+f
+Q
+q
+0.078 0.722 0.651 rg
+327.00 290.00 172.50 8.00 re
+f
+Q
+BT
+0.059 0.090 0.165 rg
+/F2 8.50 Tf
+567.00 297.00 Td
+(3) Tj
+ET
+BT
+0.059 0.090 0.165 rg
+/F2 9.50 Tf
+42.00 276.00 Td
+(S-06) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+90.00 276.00 Td
+(proveedor recurrente) Tj
+ET
+q
+0.886 0.910 0.941 rg
+327.00 268.00 230.00 8.00 re
+f
+Q
+q
+0.078 0.722 0.651 rg
+327.00 268.00 172.50 8.00 re
+f
+Q
+BT
+0.059 0.090 0.165 rg
+/F2 8.50 Tf
+567.00 275.00 Td
+(3) Tj
+ET
+BT
+0.059 0.090 0.165 rg
+/F2 15.00 Tf
+42.00 254.00 Td
+(Casos prioritarios) Tj
+ET
+q
+0.078 0.722 0.651 rg
+42.00 245.00 80.00 2.00 re
+f
+Q
+q
+1.000 1.000 1.000 rg
+0.886 0.910 0.941 RG
+42.00 60.00 528.00 166.00 re
+B
+Q
+q
+0.863 0.149 0.149 rg
+42.00 60.00 7.00 166.00 re
+f
+Q
+BT
+0.059 0.090 0.165 rg
+/F2 12.00 Tf
+58.00 206.00 Td
+(UPL-0002) Tj
+ET
+q
+0.863 0.149 0.149 rg
+152.00 195.00 80.00 18.00 re
+f
+Q
+BT
+1.000 1.000 1.000 rg
+/F2 8.00 Tf
+160.00 200.00 Td
+(ROJO) Tj
+ET
+BT
+0.059 0.090 0.165 rg
+/F2 10.00 Tf
+247.00 206.00 Td
+(Score 100/100) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+58.00 183.00 Td
+(Proveedor: Taller Horizonte) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+337.00 183.00 Td
+(Ciudad: Medellin) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+58.00 165.00 Td
+(Cobertura: Perdida Total por Robo) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+337.00 165.00 Td
+(Monto: $28,500) Tj
+ET
+BT
+0.059 0.090 0.165 rg
+/F2 8.50 Tf
+58.00 144.00 Td
+(Lectura ejecutiva del caso) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 8.20 Tf
+58.00 131.00 Td
+(El caso UPL-0002 queda en nivel rojo con score 100/100 y requiere revision especializada antes de decidir. Las) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 8.20 Tf
+58.00 121.00 Td
+(senales que explican la alerta son: documentacion incompleta o inconsistente, monto reclamado cercano a la suma) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 8.20 Tf
+58.00 111.00 Td
+(asegurada \(95.0%\) y reporte realizado 7 dias despues del evento. Contexto del reclamo: cobertura Perdida Total por) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 8.20 Tf
+58.00 101.00 Td
+(Robo y proveedor Taller Horizonte. Esto no confirma fraude; orienta que soportes, fechas, proveedor y narrativa) Tj
+ET
+BT
+0.278 0.333 0.412 rg
+/F1 8.00 Tf
+58.00 89.00 Td
+(Alertas activadas: RF-01, RF-02, RF-03, RF-04, S-01, RF-06, S-02, S-03, S-06, S-07, S-08, S-09, NLP-01, NLP-03) Tj
 ET
 endstream
 endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 5 0 R >>
+endobj
 7 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 6 0 R >>
+<< /Length 4503 >>
+stream
+q
+1.000 1.000 1.000 rg
+0.00 0.00 612.00 792.00 re
+f
+Q
+q
+0.059 0.090 0.165 rg
+0.00 764.00 612.00 28.00 re
+f
+Q
+BT
+1.000 1.000 1.000 rg
+/F2 9.00 Tf
+42.00 775.00 Td
+(FraudIA | Reporte de auditoria) Tj
+ET
+BT
+0.796 0.835 0.882 rg
+/F1 8.00 Tf
+520.00 775.00 Td
+(Pag. 2) Tj
+ET
+q
+1.000 1.000 1.000 rg
+0.886 0.910 0.941 RG
+42.00 562.00 528.00 166.00 re
+B
+Q
+q
+0.863 0.149 0.149 rg
+42.00 562.00 7.00 166.00 re
+f
+Q
+BT
+0.059 0.090 0.165 rg
+/F2 12.00 Tf
+58.00 708.00 Td
+(UPL-0006) Tj
+ET
+q
+0.863 0.149 0.149 rg
+152.00 697.00 80.00 18.00 re
+f
+Q
+BT
+1.000 1.000 1.000 rg
+/F2 8.00 Tf
+160.00 702.00 Td
+(ROJO) Tj
+ET
+BT
+0.059 0.090 0.165 rg
+/F2 10.00 Tf
+247.00 708.00 Td
+(Score 100/100) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+58.00 685.00 Td
+(Proveedor: Taller Horizonte) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+337.00 685.00 Td
+(Ciudad: Cali) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+58.00 667.00 Td
+(Cobertura: Perdida Total por Robo) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+337.00 667.00 Td
+(Monto: $33,000) Tj
+ET
+BT
+0.059 0.090 0.165 rg
+/F2 8.50 Tf
+58.00 646.00 Td
+(Lectura ejecutiva del caso) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 8.20 Tf
+58.00 633.00 Td
+(El caso UPL-0006 queda en nivel rojo con score 100/100 y requiere revision especializada antes de decidir. Las) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 8.20 Tf
+58.00 623.00 Td
+(senales que explican la alerta son: documentacion incompleta o inconsistente, monto reclamado cercano a la suma) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 8.20 Tf
+58.00 613.00 Td
+(asegurada \(97.1%\) y reporte realizado 6 dias despues del evento. Contexto del reclamo: cobertura Perdida Total por) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 8.20 Tf
+58.00 603.00 Td
+(Robo y proveedor Taller Horizonte. Esto no confirma fraude; orienta que soportes, fechas, proveedor y narrativa) Tj
+ET
+BT
+0.278 0.333 0.412 rg
+/F1 8.00 Tf
+58.00 591.00 Td
+(Alertas activadas: RF-01, RF-02, RF-04, RF-05, RF-06, S-02, S-03, S-04, S-06, S-07, S-08, S-09, NLP-03) Tj
+ET
+q
+1.000 1.000 1.000 rg
+0.886 0.910 0.941 RG
+42.00 380.00 528.00 166.00 re
+B
+Q
+q
+0.961 0.620 0.043 rg
+42.00 380.00 7.00 166.00 re
+f
+Q
+BT
+0.059 0.090 0.165 rg
+/F2 12.00 Tf
+58.00 526.00 Td
+(UPL-0004) Tj
+ET
+q
+0.961 0.620 0.043 rg
+152.00 515.00 80.00 18.00 re
+f
+Q
+BT
+1.000 1.000 1.000 rg
+/F2 8.00 Tf
+160.00 520.00 Td
+(AMARILLO) Tj
+ET
+BT
+0.059 0.090 0.165 rg
+/F2 10.00 Tf
+247.00 526.00 Td
+(Score 75/100) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+58.00 503.00 Td
+(Proveedor: Taller Horizonte) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+337.00 503.00 Td
+(Ciudad: Barranquilla) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+58.00 485.00 Td
+(Cobertura: Robo) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+337.00 485.00 Td
+(Monto: $16,200) Tj
+ET
+BT
+0.059 0.090 0.165 rg
+/F2 8.50 Tf
+58.00 464.00 Td
+(Lectura ejecutiva del caso) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 8.20 Tf
+58.00 451.00 Td
+(El caso UPL-0004 queda en nivel amarillo con score 75/100 y requiere revision documental prioritaria. Las senales) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 8.20 Tf
+58.00 441.00 Td
+(que explican la alerta son: documentacion incompleta o inconsistente, monto reclamado cercano a la suma asegurada) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 8.20 Tf
+58.00 431.00 Td
+(\(95.3%\) y reporte realizado 6 dias despues del evento. Contexto del reclamo: cobertura Robo y proveedor Taller) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 8.20 Tf
+58.00 421.00 Td
+(Horizonte. Esto no confirma fraude; orienta que soportes, fechas, proveedor y narrativa deben validarse antes de) Tj
+ET
+BT
+0.278 0.333 0.412 rg
+/F1 8.00 Tf
+58.00 409.00 Td
+(Alertas activadas: S-01, RF-06, S-02, S-03, S-04, S-06, S-07, S-08, S-09, NLP-03) Tj
+ET
+BT
+0.059 0.090 0.165 rg
+/F2 15.00 Tf
+42.00 364.00 Td
+(Notas de lectura) Tj
+ET
+q
+0.078 0.722 0.651 rg
+42.00 355.00 80.00 2.00 re
+f
+Q
+BT
+0.078 0.722 0.651 rg
+/F2 10.00 Tf
+42.00 336.00 Td
+(-) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+56.00 336.00 Td
+(Rojo: requiere revision especializada y validacion documental prioritaria.) Tj
+ET
+BT
+0.078 0.722 0.651 rg
+/F2 10.00 Tf
+42.00 307.00 Td
+(-) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+56.00 307.00 Td
+(Amarillo: requiere revision dirigida antes de cierre operativo.) Tj
+ET
+BT
+0.078 0.722 0.651 rg
+/F2 10.00 Tf
+42.00 278.00 Td
+(-) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+56.00 278.00 Td
+(Verde: flujo normal salvo que auditoria solicite validacion adicional.) Tj
+ET
+BT
+0.078 0.722 0.651 rg
+/F2 10.00 Tf
+42.00 249.00 Td
+(-) Tj
+ET
+BT
+0.200 0.255 0.333 rg
+/F1 9.00 Tf
+56.00 249.00 Td
+(El reporte orienta priorizacion; la decision final debe ser humana y trazable.) Tj
+ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 7 0 R >>
 endobj
 xref
-0 8
+0 9
 0000000000 65535 f 
 0000000009 00000 n 
 0000000058 00000 n 
 0000000121 00000 n 
 0000000191 00000 n 
-0000002644 00000 n 
-0000002770 00000 n 
-0000002950 00000 n 
+0000000266 00000 n 
+0000007450 00000 n 
+0000007586 00000 n 
+0000012141 00000 n 
 trailer
-<< /Size 8 /Root 1 0 R >>
+<< /Size 9 /Root 1 0 R >>
 startxref
-3076
+12277
 %%EOF

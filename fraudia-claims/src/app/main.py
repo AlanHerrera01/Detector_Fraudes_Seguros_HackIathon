@@ -407,6 +407,7 @@ def _audit_report_df(
             "codigos_alerta": df["alertas"].apply(lambda alerts: ", ".join(alert.get("code", "") for alert in alerts)),
             "senales_narrativa": df["senales_narrativa"].apply(lambda signals: ", ".join(signals)),
             "explicacion": df["explicacion"],
+            "resumen_ejecutivo": df.apply(lambda row: build_executive_explanation(row.to_dict())["resumen_ejecutivo"], axis=1),
             "nota_etica": "Alerta para revision humana; no confirma fraude ni decide rechazos automaticamente.",
         }
     )
@@ -562,6 +563,21 @@ def _alert_description(code: str) -> str:
     return descriptions.get(code, "senal de revision")
 
 
+def _case_report_summary(row) -> str:
+    summary = str(row.get("resumen_ejecutivo") or "").strip()
+    if summary:
+        return summary
+
+    explanation = str(row.get("explicacion") or "").strip()
+    if explanation:
+        return explanation
+
+    return (
+        f"El caso {row.get('id_siniestro')} tiene score {row.get('score_riesgo')}/100 "
+        f"y nivel {row.get('nivel_riesgo')}. Debe revisarse con soporte documental, fechas, proveedor y narrativa antes de decidir."
+    )
+
+
 def _pdf_from_lines(lines: list[str]) -> bytes:
     escaped_lines = [_pdf_escape(line) for line in lines]
     pages = [escaped_lines[i : i + 42] for i in range(0, len(escaped_lines), 42)] or [[]]
@@ -681,7 +697,7 @@ class _AuditPdf:
     def case_card(self, row) -> None:
         level = str(row.get("nivel_riesgo") or "").lower()
         accent = _risk_rgb(level)
-        card_height = 116
+        card_height = 166
         self.ensure(card_height + 16)
         x = self.margin
         y = self.y - card_height
@@ -695,8 +711,16 @@ class _AuditPdf:
         self.text(x + 295, self.y - 43, f"Ciudad: {row.get('ciudad')}", size=9, color=(51, 65, 85))
         self.text(x + 16, self.y - 61, f"Cobertura: {row.get('cobertura')}", size=9, color=(51, 65, 85))
         self.text(x + 295, self.y - 61, f"Monto: {_money(row.get('monto_reclamado'))}", size=9, color=(51, 65, 85))
+
+        self.y -= 82
+        self.text(x + 16, self.y, "Lectura ejecutiva del caso", size=8.5, font="F2", color=(15, 23, 42))
+        self.y -= 13
+        summary = _case_report_summary(row)
+        self.paragraph(summary, x=x + 16, width=width - 32, size=8.2, color=(51, 65, 85), line_gap=10, max_lines=4)
+
+        self.y -= 2
         alerts = str(row.get("codigos_alerta") or "Sin alertas")
-        self.paragraph(f"Alertas: {alerts}", x=x + 16, width=width - 32, size=8.5, color=(71, 85, 105), line_gap=11, max_lines=2)
+        self.paragraph(f"Alertas activadas: {alerts}", x=x + 16, width=width - 32, size=8, color=(71, 85, 105), line_gap=10, max_lines=2)
         self.y = y - 16
 
     def badge(self, x: float, y: float, label: str, color: tuple[int, int, int]) -> None:
