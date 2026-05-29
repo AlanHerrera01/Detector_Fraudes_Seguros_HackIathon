@@ -2,7 +2,7 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import useFraudData from '../hooks/useFraudData'
 import StatCard from '../components/ui/StatCard'
-import { levelFromScore } from '../utils/riskHelpers'
+import { formatCurrency, levelFromScore } from '../utils/riskHelpers'
 
 function pct(value, total) {
   if (!total) return 0
@@ -341,11 +341,12 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14 }}>
+      <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 14 }}>
         <StatCard label="Siniestros analizados" value={summary.total} accent="var(--accent)" hint="Archivo activo" info="Total de casos cargados para revision." />
         <StatCard label="Casos criticos" value={summary.critical} accent="#7f1d1d" hint="Auditoria inmediata" info="Casos con score critico o cercano a 90+." />
         <StatCard label="Score promedio" value={(stats.score_promedio ?? 0).toFixed(1)} accent="var(--risk-yellow)" hint="Riesgo agregado" info="Promedio del score calculado por reglas, NLP y ML." />
         <StatCard label="Casos con alerta" value={summary.claimsWithAlerts} accent="var(--risk-green)" hint="Senales detectadas" info="Casos con al menos una alerta; no confirma fraude." />
+        <StatCard label="Ahorro estimado" value={formatCurrency(stats.ahorro_potencial ?? 0)} accent="#14b8a6" hint="Potencial auditado" info="Estimacion referencial del monto que podria priorizarse para revision antes de pago." />
       </div>
 
       <Panel style={{ padding: 18 }}>
@@ -662,7 +663,6 @@ function QuickSummaryPanel({ networks, summary }) {
 function BusinessMixPanel({ ramoItems, coverageItems, nav }) {
   const [view, setView] = useState('ramos')
   const activeItems = view === 'ramos' ? ramoItems : coverageItems
-  const activeColor = view === 'ramos' ? 'var(--risk-green)' : 'var(--risk-yellow)'
 
   return (
     <Panel>
@@ -681,7 +681,7 @@ function BusinessMixPanel({ ramoItems, coverageItems, nav }) {
         <button onClick={() => setView('coberturas')} style={view === 'coberturas' ? segmentedActiveStyle : segmentedButtonStyle}>Coberturas</button>
       </div>
 
-      <BreakdownChart items={activeItems} color={activeColor} />
+      <PieChart data={activeItems} labelKey="label" valueKey="count" />
     </Panel>
   )
 }
@@ -1224,41 +1224,6 @@ function PieChart({ data, labelKey, valueKey }) {
           </button>
         ))}
       </div>
-    </div>
-  )
-}
-
-function BreakdownChart({ items, color }) {
-  const [activeLabel, setActiveLabel] = useState(items[0]?.label || '')
-  const total = items.reduce((sum, item) => sum + item.count, 0)
-  const activeItem = items.find((item) => item.label === activeLabel) || items[0]
-  return (
-    <div style={{ display: 'grid', gap: 14, marginTop: 14 }}>
-      {items.map((item) => {
-        const width = total ? Math.round((item.count / total) * 100) : 0
-        return (
-          <button key={item.label} onClick={() => setActiveLabel(item.label)} style={{ display: 'grid', gap: 6, textAlign: 'left', background: activeLabel === item.label ? 'rgba(96, 165, 250, 0.12)' : 'transparent', border: '1px solid var(--border)', padding: 10 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13 }}>
-              <span>{item.label}</span>
-              <span>{item.count}</span>
-            </div>
-            <div style={{ height: 10, width: '100%', background: 'var(--border)', borderRadius: 999, overflow: 'hidden' }}>
-              <div style={{ width: `${width}%`, height: '100%', borderRadius: 999, background: color }} />
-            </div>
-          </button>
-        )
-      })}
-      {activeItem && (
-        <div style={chartInsightStyle}>
-          <span style={{ width: 10, height: 10, borderRadius: 999, background: color }} />
-          <div>
-            <strong>{activeItem.label}</strong>
-            <div style={{ color: 'var(--muted)', fontSize: 13 }}>
-              {activeItem.count} casos, {total ? Math.round((activeItem.count / total) * 100) : 0}% de esta grafica.
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
