@@ -496,38 +496,6 @@ export default function Dashboard() {
 
       <CityCasesPanel cities={summary.topCities} total={summary.total} nav={nav} />
 
-      <div className="dashboard-two-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <QuickSummaryPanel networks={networks} summary={summary} />
-
-        <Panel>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
-            <div>
-              <h3 style={{ margin: 0 }}>Concentracion por proveedor</h3>
-              <p style={{ color: 'var(--muted)', marginTop: 6 }}>
-                Representa concentraciones por proveedor: casos, asegurados, vehiculos y alertas rojas.
-              </p>
-            </div>
-            <button onClick={() => nav('/providers')} style={panelButtonStyle}>Explorar</button>
-          </div>
-          <div style={{ display: 'grid', gap: 12, marginTop: 14 }}>
-            {networks.slice(0, 5).map((item) => (
-              <div key={item.beneficiario} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'center', background: 'var(--panel-bg)', borderRadius: 'var(--radius-lg)', padding: 14, border: '1px solid var(--border)' }}>
-                <div>
-                  <strong>{item.beneficiario}</strong>
-                  <div style={{ color: 'var(--muted)', marginTop: 6, fontSize: 13 }}>
-                    {item.total_casos ?? 0} casos • {item.asegurados_unicos ?? 0} asegurados • {item.vehiculos_unicos ?? 0} vehiculos
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontWeight: 700, color: 'var(--accent)' }}>{item.indice_concentracion ?? 'N/A'}</div>
-                  <div style={{ color: 'var(--muted)', fontSize: 12 }}>Indice</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Panel>
-      </div>
-
       {uploadOpen && (
         <UploadModal
           file={uploadFile}
@@ -672,29 +640,6 @@ function UploadModal({ file, setFile, loading, progress, elapsedSeconds, result,
         </div>
       </div>
     </div>
-  )
-}
-
-function QuickSummaryPanel({ networks, summary }) {
-  void networks
-  return (
-    <Panel>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
-        <div>
-          <h3 style={{ margin: 0 }}>Resumen rapido</h3>
-          <p style={{ color: 'var(--muted)', marginTop: 6 }}>
-            Representa conteos directos del archivo activo cargado, no de la muestra visible.
-          </p>
-        </div>
-      </div>
-      <div style={{ display: 'grid', gap: 12, marginTop: 18 }}>
-        <SummaryLine label="Proveedores del archivo" value={summary.uniqueProviders} info="Total de proveedores unicos presentes en el archivo activo." />
-        <SummaryLine label="Ciudades del archivo" value={summary.uniqueCities} info="Ciudades unicas detectadas en los siniestros cargados." />
-        <SummaryLine label="Casos con alertas" value={summary.claimsWithAlerts} info="Siniestros del archivo activo con al menos una alerta explicable." />
-        <SummaryLine label="Coberturas del archivo" value={summary.uniqueCoverages} info="Coberturas unicas detectadas en los siniestros cargados." />
-        <SummaryLine label="Ramos del archivo" value={summary.uniqueLines} info="Ramos unicos detectados en el archivo activo." />
-      </div>
-    </Panel>
   )
 }
 
@@ -870,18 +815,6 @@ function MiniStat({ label, value, color, info }) {
         {info && <InfoMark info={info} />}
       </span>
       <strong style={{ color, fontSize: 18 }}>{value}</strong>
-    </div>
-  )
-}
-
-function SummaryLine({ label, value, info }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: 14, borderRadius: 'var(--radius-lg)', background: 'var(--panel-bg)', border: '1px solid var(--border)', boxShadow: '0 0 10px rgba(96, 165, 250, 0.05)' }}>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--muted)' }}>
-        {label}
-        {info && <InfoMark info={info} />}
-      </span>
-      <strong style={{ color: '#10b981' }}>{value}</strong>
     </div>
   )
 }
