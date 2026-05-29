@@ -33,9 +33,14 @@ function RiskPill({ level }) {
     amarillo: 'var(--risk-yellow)',
     verde: 'var(--risk-green)',
   }
+  const labels = {
+    rojo: 'Critico',
+    amarillo: 'Medio',
+    verde: 'Bajo',
+  }
   return (
     <span style={{ background: colors[level] || '#64748b', color: '#fff', borderRadius: 999, padding: '4px 10px', fontSize: 12, fontWeight: 700, textTransform: 'capitalize' }}>
-      {level || 'sin nivel'}
+      {labels[level] || 'Sin nivel'}
     </span>
   )
 }
@@ -377,21 +382,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <Panel style={{ padding: 18 }}>
-        <div className="dashboard-action-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr repeat(3, minmax(0, 1fr))', gap: 12, alignItems: 'stretch' }}>
-          <div>
-            <span style={{ color: 'var(--accent)', fontSize: 12, fontWeight: 900, textTransform: 'uppercase' }}>Siguiente accion</span>
-            <h3 style={{ margin: '6px 0 6px' }}>{summary.red ? `Revisar ${summary.red} casos rojos primero` : 'Portafolio sin casos rojos'}</h3>
-            <p style={{ color: 'var(--muted)', lineHeight: 1.45 }}>
-              Empieza por los siniestros con score mas alto y luego revisa proveedores con concentracion anormal.
-            </p>
-          </div>
-          <ActionTile label="Alta prioridad" value={summary.red} color="var(--risk-red)" info="Casos rojos: score entre 76 y 100, sugeridos para revision especializada." onClick={() => nav('/siniestros')} />
-          <ActionTile label="Requiere monitoreo" value={summary.yellow} color="var(--risk-yellow)" info="Casos amarillos: score entre 41 y 75, recomendados para revision documental." onClick={() => nav('/siniestros')} />
-          <ActionTile label="Redes a revisar" value={networks.length} color="var(--accent)" info="Concentraciones por proveedor, asegurado o vehiculo que conviene revisar por posible patron." onClick={() => nav('/providers')} />
-        </div>
-      </Panel>
-
       <Panel style={{ padding: 22 }}>
         <div className="portfolio-header" style={portfolioHeaderStyle}>
           <div>
@@ -399,9 +389,29 @@ export default function Dashboard() {
             <p style={{ color: 'var(--muted)', marginTop: 6 }}>Distribucion y tendencia diaria de siniestros por nivel de riesgo.</p>
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', color: 'var(--muted)', fontSize: 13 }}>
-            <Badge color="var(--risk-green)" label="Verde" />
-            <Badge color="var(--risk-yellow)" label="Amarillo" />
-            <Badge color="var(--risk-red)" label="Rojo" />
+            <Badge color="var(--risk-green)" label="Bajo" />
+            <Badge color="var(--risk-yellow)" label="Medio" />
+            <Badge color="var(--risk-red)" label="Critico" />
+          </div>
+        </div>
+
+        <div className="portfolio-action-grid" style={portfolioActionStyle}>
+          <div>
+            <span style={{ color: 'var(--accent)', fontSize: 12, fontWeight: 900, textTransform: 'uppercase' }}>Siguiente accion</span>
+            <h4 style={{ margin: '6px 0 0', fontSize: 18 }}>
+              {summary.red ? 'Priorizar revision especializada' : summary.yellow ? 'Revisar casos de riesgo medio' : 'Portafolio estable'}
+            </h4>
+            <p style={{ color: 'var(--muted)', marginTop: 6, lineHeight: 1.45 }}>
+              {summary.red
+                ? 'Empieza por los casos criticos y cruza la revision con proveedores concentrados.'
+                : summary.yellow
+                  ? 'No hay criticos activos; valida soportes de los casos medios antes del cierre.'
+                  : 'No hay alertas prioritarias; mantiene monitoreo normal del archivo activo.'}
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center' }}>
+            <button onClick={() => nav('/siniestros')} style={panelButtonStyle}>Ver siniestros</button>
+            <button onClick={() => nav('/providers')} style={panelButtonStyle}>Ver proveedores</button>
           </div>
         </div>
 
@@ -413,29 +423,29 @@ export default function Dashboard() {
               <div style={{ width: `${redPct}%`, background: 'var(--risk-red)' }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginTop: 12, fontSize: 13, color: 'var(--muted)' }}>
-              <span>{greenPct}% verde</span>
-              <span>{yellowPct}% amarillo</span>
-              <span>{redPct}% rojo</span>
+              <span>{greenPct}% bajo</span>
+              <span>{yellowPct}% medio</span>
+              <span>{redPct}% critico</span>
             </div>
           </div>
           <div className="portfolio-stats" style={portfolioStatsStyle}>
-            <MiniStat label="Verde" value={summary.green} color="var(--risk-green)" info="Score 0-40: flujo normal con validacion basica." />
-            <MiniStat label="Amarillo" value={summary.yellow} color="var(--risk-yellow)" info="Score 41-75: requiere monitoreo o revision documental." />
-            <MiniStat label="Rojo" value={summary.red} color="var(--risk-red)" info="Score 76-100: revision especializada antes de decidir." />
+            <MiniStat label="Bajo" value={summary.green} color="var(--risk-green)" info="Score 0-40: flujo normal con validacion basica." />
+            <MiniStat label="Medio" value={summary.yellow} color="var(--risk-yellow)" info="Score 41-75: requiere monitoreo o revision documental." />
+            <MiniStat label="Critico" value={summary.red} color="var(--risk-red)" info="Score 76-100: revision especializada antes de decidir." />
           </div>
         </div>
 
         <div style={{ marginTop: 24 }}>
           <h4 style={{ margin: 0, fontSize: 15 }}>Tendencia de casos</h4>
-          <p style={{ color: 'var(--muted)', marginTop: 6 }}>Elige los colores que deseas ver en las lineas.</p>
+          <p style={{ color: 'var(--muted)', marginTop: 6 }}>Elige los niveles de riesgo que deseas ver en las lineas.</p>
         </div>
         <TrendLineChart
           data={summary.trend}
           height={420}
           series={[
-            { key: 'rojo', label: 'Rojo', color: 'var(--risk-red)' },
-            { key: 'amarillo', label: 'Amarillo', color: 'var(--risk-yellow)' },
-            { key: 'verde', label: 'Verde', color: 'var(--risk-green)' },
+            { key: 'rojo', label: 'Critico', color: 'var(--risk-red)' },
+            { key: 'amarillo', label: 'Medio', color: 'var(--risk-yellow)' },
+            { key: 'verde', label: 'Bajo', color: 'var(--risk-green)' },
           ]}
         />
       </Panel>
@@ -657,19 +667,6 @@ function UploadModal({ file, setFile, loading, progress, elapsedSeconds, result,
   )
 }
 
-function ActionTile({ label, value, color, info, onClick }) {
-  return (
-    <button onClick={onClick} style={{ display: 'grid', gap: 8, alignContent: 'center', minHeight: 112, textAlign: 'left', background: '#111827', border: '1px solid var(--border-light)', borderRadius: 8, padding: 16 }}>
-      <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, color: 'var(--muted)', fontSize: 13, fontWeight: 700 }}>
-        {label}
-        {info && <InfoMark info={info} />}
-      </span>
-      <strong style={{ color, fontSize: 30, lineHeight: 1 }}>{value}</strong>
-      <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>Abrir vista</span>
-    </button>
-  )
-}
-
 function PriorityClaimsPanel({ claims, nav }) {
   return (
     <Panel style={{ padding: 22 }}>
@@ -785,9 +782,9 @@ function CityCasesPanel({ cities, total, nav }) {
                   <span style={{ color: 'var(--accent)', fontWeight: 900 }}>{item.total} casos</span>
                 </div>
                 <div style={{ display: 'flex', height: 12, borderRadius: 999, overflow: 'hidden', background: 'var(--border)', marginTop: 10 }}>
-                  <div title={`${greenPct}% verde`} style={{ width: `${greenPct}%`, background: 'var(--risk-green)' }} />
-                  <div title={`${yellowPct}% amarillo`} style={{ width: `${yellowPct}%`, background: 'var(--risk-yellow)' }} />
-                  <div title={`${redPct}% rojo`} style={{ width: `${redPct}%`, background: 'var(--risk-red)' }} />
+                  <div title={`${greenPct}% bajo`} style={{ width: `${greenPct}%`, background: 'var(--risk-green)' }} />
+                  <div title={`${yellowPct}% medio`} style={{ width: `${yellowPct}%`, background: 'var(--risk-yellow)' }} />
+                  <div title={`${redPct}% critico`} style={{ width: `${redPct}%`, background: 'var(--risk-red)' }} />
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                   <span style={cityTagStyle}>Ramo: {item.topLine}</span>
@@ -798,7 +795,7 @@ function CityCasesPanel({ cities, total, nav }) {
               <div style={{ display: 'grid', gap: 6, justifyItems: 'end', alignContent: 'center' }}>
                 <strong style={{ color: item.scoreAvg >= 76 ? 'var(--risk-red)' : item.scoreAvg >= 41 ? 'var(--risk-yellow)' : 'var(--risk-green)', fontSize: 22 }}>{item.scoreAvg}</strong>
                 <span style={{ color: 'var(--muted)', fontSize: 12 }}>Score prom.</span>
-                <span style={{ color: 'var(--muted)', fontSize: 12 }}>{item.rojo} rojos</span>
+                <span style={{ color: 'var(--muted)', fontSize: 12 }}>{item.rojo} criticos</span>
               </div>
             </div>
           )
@@ -930,6 +927,18 @@ const portfolioSummaryStyle = {
   gap: 20,
   alignItems: 'center',
   marginTop: 18,
+}
+
+const portfolioActionStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr) auto',
+  gap: 14,
+  alignItems: 'center',
+  marginTop: 18,
+  padding: 14,
+  borderRadius: 8,
+  background: '#111827',
+  border: '1px solid var(--border-light)',
 }
 
 const portfolioStatsStyle = {
