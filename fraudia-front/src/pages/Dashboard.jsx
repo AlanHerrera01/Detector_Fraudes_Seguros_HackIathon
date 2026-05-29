@@ -268,7 +268,7 @@ export default function Dashboard() {
 
   return (
     <div style={{ display: 'grid', gap: 18 }}>
-      <section style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'center' }}>
+      <section className="dashboard-header" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'center' }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 28 }}>Panel ejecutivo antifraude</h2>
           <p style={{ color: 'var(--muted)', marginTop: 8, maxWidth: 760 }}>
@@ -299,7 +299,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14 }}>
+      <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14 }}>
         <StatCard label="Siniestros analizados" value={summary.total} accent="var(--accent)" hint="Archivo activo" info="Total de casos cargados para revision." />
         <StatCard label="Casos criticos" value={summary.critical} accent="#7f1d1d" hint="Auditoria inmediata" info="Casos con score critico o cercano a 90+." />
         <StatCard label="Score promedio" value={(stats.score_promedio ?? 0).toFixed(1)} accent="var(--risk-yellow)" hint="Riesgo agregado" info="Promedio del score calculado por reglas, NLP y ML." />
@@ -307,7 +307,7 @@ export default function Dashboard() {
       </div>
 
       <Panel style={{ padding: 18 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.1fr repeat(3, minmax(0, 1fr))', gap: 12, alignItems: 'stretch' }}>
+        <div className="dashboard-action-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr repeat(3, minmax(0, 1fr))', gap: 12, alignItems: 'stretch' }}>
           <div>
             <span style={{ color: 'var(--accent)', fontSize: 12, fontWeight: 900, textTransform: 'uppercase' }}>Siguiente accion</span>
             <h3 style={{ margin: '6px 0 6px' }}>{summary.red ? `Revisar ${summary.red} casos rojos primero` : 'Portafolio sin casos rojos'}</h3>
@@ -322,7 +322,7 @@ export default function Dashboard() {
       </Panel>
 
       <Panel style={{ padding: 22 }}>
-        <div style={portfolioHeaderStyle}>
+        <div className="portfolio-header" style={portfolioHeaderStyle}>
           <div>
             <h3 style={{ margin: 0 }}>Estado del portafolio</h3>
             <p style={{ color: 'var(--muted)', marginTop: 6 }}>Distribucion y tendencia diaria de siniestros por nivel de riesgo.</p>
@@ -334,7 +334,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div style={portfolioSummaryStyle}>
+        <div className="portfolio-summary" style={portfolioSummaryStyle}>
           <div>
             <div style={{ display: 'flex', height: 22, borderRadius: 999, overflow: 'hidden', background: 'var(--border)' }}>
               <div style={{ width: `${greenPct}%`, background: 'var(--risk-green)' }} />
@@ -347,7 +347,7 @@ export default function Dashboard() {
               <span>{redPct}% rojo</span>
             </div>
           </div>
-          <div style={portfolioStatsStyle}>
+          <div className="portfolio-stats" style={portfolioStatsStyle}>
             <MiniStat label="Verde" value={summary.green} color="var(--risk-green)" info="Score 0-40: flujo normal con validacion basica." />
             <MiniStat label="Amarillo" value={summary.yellow} color="var(--risk-yellow)" info="Score 41-75: requiere monitoreo o revision documental." />
             <MiniStat label="Rojo" value={summary.red} color="var(--risk-red)" info="Score 76-100: revision especializada antes de decidir." />
@@ -371,7 +371,7 @@ export default function Dashboard() {
 
       <PriorityClaimsPanel claims={summary.top} nav={nav} />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
+      <div className="dashboard-three-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
         <Panel>
           <div style={panelHeaderStyle}>
             <div>
@@ -405,7 +405,7 @@ export default function Dashboard() {
         />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      <div className="dashboard-two-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <QuickSummaryPanel networks={networks} summary={summary} />
 
         <Panel>

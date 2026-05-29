@@ -22,10 +22,6 @@ export default function SiniestrosList() {
     api.getSiniestros({ search, riesgo: 'todos', limit: 500 }).then((r) => setList(r.items))
   }, [api, search])
 
-  useEffect(() => {
-    setPage(1)
-  }, [search, riesgo, pageSize])
-
   const visibleList = useMemo(() => {
     if (riesgo === 'todos') return list
     return list.filter((item) => item.nivel_riesgo === riesgo)
@@ -48,7 +44,7 @@ export default function SiniestrosList() {
 
   return (
     <div style={pageStyle}>
-      <section style={heroStyle}>
+      <section className="siniestros-hero" style={heroStyle}>
         <div>
           <span style={eyebrowStyle}>Siniestros</span>
           <h3 style={titleStyle}>Bandeja de revision</h3>
@@ -73,11 +69,14 @@ export default function SiniestrosList() {
         </div>
       </section>
 
-      <section style={toolbarStyle}>
+      <section className="siniestros-toolbar" style={toolbarStyle}>
         <input
           placeholder="Buscar por ID, proveedor o cobertura"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            setPage(1)
+          }}
           style={searchStyle}
         />
         <div style={filterGroupStyle}>
@@ -87,7 +86,14 @@ export default function SiniestrosList() {
             ['amarillo', 'Amarillo', summary.yellow],
             ['verde', 'Verde', summary.green],
           ].map(([value, label, count]) => (
-            <button key={value} onClick={() => setRiesgo(value)} style={filterButtonStyle(value, riesgo)}>
+            <button
+              key={value}
+              onClick={() => {
+                setRiesgo(value)
+                setPage(1)
+              }}
+              style={filterButtonStyle(value, riesgo)}
+            >
               <span>{label}</span>
               <strong>{count}</strong>
             </button>
@@ -95,7 +101,14 @@ export default function SiniestrosList() {
         </div>
         <div style={pageSizeGroupStyle}>
           <span style={pageSizeLabelStyle}>Ver</span>
-          <select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))} style={pageSizeSelectStyle}>
+          <select
+            value={pageSize}
+            onChange={(event) => {
+              setPageSize(Number(event.target.value))
+              setPage(1)
+            }}
+            style={pageSizeSelectStyle}
+          >
             {[10, 25, 50, 100].map((size) => (
               <option key={size} value={size}>{size}</option>
             ))}
@@ -103,7 +116,7 @@ export default function SiniestrosList() {
         </div>
       </section>
 
-      <section style={tableCardStyle}>
+      <section className="responsive-table-card" style={tableCardStyle}>
         <div style={tableHeaderStyle}>
           <span>ID</span>
           <span>Ramo / cobertura</span>

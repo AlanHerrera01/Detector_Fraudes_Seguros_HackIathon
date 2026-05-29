@@ -110,49 +110,48 @@ export default function SiniestroDetail() {
 
   if (!item) return <div>Cargando...</div>
 
-  const action = suggestedAction(item.score)
   const groupedAlerts = groupAlerts(item.alertas_detalle || [])
 
   return (
-    <div style={pageGridStyle}>
+    <div className="detail-grid" style={pageGridStyle}>
       <main style={mainPanelStyle}>
         <button onClick={() => nav('/siniestros')} style={{ marginBottom: 12 }}>Volver a siniestros</button>
+        <p style={ethicsInlineTextStyle}>
+          {explanation?.nota_etica || 'Esta salida prioriza revision humana. No confirma fraude, no debe usarse para negar automaticamente un siniestro y puede contener falsos positivos.'}
+        </p>
         <CaseHeader item={item} />
+        <ChecklistSection steps={explanation?.acciones_recomendadas || []} />
 
         <ExecutiveSummary item={item} explanation={explanation} />
         <NarrativeSection item={item} />
         <AlertsSection groupedAlerts={groupedAlerts} hasAlerts={(item.alertas_detalle || []).length > 0} />
       </main>
 
-      <aside style={asideStyle}>
-        <div style={sideCardStyle}>
-          <ScoreGauge score={item.score} />
-        </div>
-
-        <div style={sideCardStyle}>
-          <h4 style={sideTitleStyle}>Accion sugerida</h4>
-          <div style={{ ...actionBoxStyle, background: action.color }}>{action.action}</div>
-        </div>
-
-        <div style={sideCardStyle}>
-          <h4 style={sideTitleStyle}>Checklist de analista</h4>
-          <div style={{ display: 'grid', gap: 8 }}>
-            {(explanation?.acciones_recomendadas || []).map((step) => (
-              <div key={step} style={checkItemStyle}>{step}</div>
-            ))}
-          </div>
-        </div>
-
-        <div style={ethicsCardStyle}>
-          {explanation?.nota_etica || 'Alerta para revision humana; no confirma fraude.'}
-        </div>
-      </aside>
     </div>
+  )
+}
+
+function ChecklistSection({ steps }) {
+  return (
+    <section style={checklistSectionStyle}>
+      <div style={sectionHeaderStyle}>
+        <div>
+          <h4 style={{ margin: 0 }}>Checklist de analista</h4>
+          <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 3 }}>Pasos sugeridos para revisar el caso antes de decidir.</div>
+        </div>
+      </div>
+      <div className="detail-checklist-grid" style={checklistGridStyle}>
+        {steps.length
+          ? steps.map((step) => <div key={step} style={checkItemStyle}>{step}</div>)
+          : <div style={emptyStateStyle}>Sin acciones recomendadas registradas para este caso.</div>}
+      </div>
+    </section>
   )
 }
 
 function CaseHeader({ item }) {
   const theme = riskTheme(item.nivel_riesgo)
+  const action = suggestedAction(item.score)
   const facts = [
     { label: 'Ramo', value: item.ramo },
     { label: 'Monto', value: formatCurrency(item.monto_reclamado || 0), mono: true },
@@ -163,20 +162,32 @@ function CaseHeader({ item }) {
   ]
 
   return (
-    <section style={caseHeaderStyle}>
-      <div>
-        <span style={caseEyebrowStyle}>Caso 360</span>
-        <h3 style={caseTitleStyle}>{item.id_siniestro}</h3>
+    <section className="detail-case-header" style={caseHeaderStyle}>
+      <div style={caseIdentityStyle}>
+        <div>
+          <span style={caseEyebrowStyle}>Caso 360</span>
+          <h3 style={caseTitleStyle}>{item.id_siniestro}</h3>
+        </div>
       </div>
-      <span style={statusBadgeStyle(theme)}>{theme.badge}</span>
 
-      <div style={caseFactsStyle}>
+      <div className="detail-facts-grid" style={caseFactsStyle}>
         {facts.map((fact) => (
           <div key={fact.label} style={caseFactStyle}>
             <span style={caseFactLabelStyle}>{fact.label}</span>
             <strong style={fact.mono ? { fontFamily: 'var(--font-mono)' } : undefined}>{fact.value || '-'}</strong>
           </div>
         ))}
+      </div>
+
+      <div className="detail-case-risk" style={caseRiskPanelStyle}>
+        <span style={statusBadgeStyle(theme)}>{theme.badge}</span>
+        <div style={caseGaugeWrapStyle}>
+          <ScoreGauge score={item.score} size={124} />
+        </div>
+        <div style={caseActionPanelStyle}>
+          <span style={caseFactLabelStyle}>Accion sugerida</span>
+          <strong style={{ ...caseActionBadgeStyle, background: action.color }}>{action.action}</strong>
+        </div>
       </div>
     </section>
   )
@@ -218,7 +229,7 @@ function ExecutiveSummary({ item, explanation }) {
 
       <div style={summaryLeadStyle}>{lead}</div>
 
-      <div style={summaryGridStyle}>
+      <div className="detail-summary-grid" style={summaryGridStyle}>
         <SummaryPanel theme={theme} label="Decision operativa">
           <strong style={{ color: theme.color, display: 'block', marginBottom: 6 }}>{theme.label}</strong>
           <p style={summaryPanelTextStyle}>
@@ -233,7 +244,7 @@ function ExecutiveSummary({ item, explanation }) {
         </SummaryPanel>
       </div>
 
-      <div style={summaryBottomGridStyle}>
+      <div className="detail-summary-grid" style={summaryBottomGridStyle}>
         <SummaryPanel theme={theme} label="Contexto del reclamo">
           <div style={chipRowStyle}>
             {contextItems.map((fact) => (
@@ -316,7 +327,7 @@ function AlertsSection({ groupedAlerts, hasAlerts }) {
         </div>
       </div>
 
-      <div style={alertIntroGridStyle}>
+      <div className="detail-alert-intro-grid" style={alertIntroGridStyle}>
         {ALERT_GROUPS.map((group) => (
           <div key={group.key} style={{ ...alertIntroCardStyle, borderTop: `4px solid ${group.color}` }}>
             <strong style={{ display: 'block', color: 'var(--text)', fontSize: 15 }}>{group.title}</strong>
@@ -355,26 +366,36 @@ function AlertGroup({ group }) {
 }
 
 const pageGridStyle = {
-  display: 'grid',
-  gridTemplateColumns: 'minmax(0, 1fr) 360px',
-  gap: 18,
+  display: 'block',
 }
 
 const mainPanelStyle = {
   background: 'var(--panel-bg)',
-  padding: 16,
+  padding: 20,
   borderRadius: 8,
+  width: '100%',
 }
 
 const caseHeaderStyle = {
   display: 'grid',
-  gridTemplateColumns: '1fr auto',
-  gap: 12,
+  gridTemplateColumns: 'minmax(0, 1fr) minmax(260px, 340px)',
+  gap: 18,
   border: '1px solid var(--border)',
   background: 'var(--card-bg)',
   borderRadius: 8,
   padding: 14,
   marginBottom: 14,
+}
+
+const ethicsInlineTextStyle = {
+  margin: '0 0 12px',
+  color: 'var(--text-secondary)',
+  lineHeight: 1.45,
+  fontSize: 14,
+}
+
+const caseIdentityStyle = {
+  display: 'block',
 }
 
 const caseEyebrowStyle = {
@@ -391,10 +412,39 @@ const caseTitleStyle = {
 }
 
 const caseFactsStyle = {
-  gridColumn: '1 / -1',
   display: 'grid',
   gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+  gap: 10,
+}
+
+const caseRiskPanelStyle = {
+  gridRow: '1 / span 2',
+  gridColumn: 2,
+  display: 'grid',
   gap: 8,
+  alignContent: 'center',
+  justifyItems: 'center',
+  padding: '4px 0 0',
+}
+
+const caseGaugeWrapStyle = {
+  display: 'grid',
+  placeItems: 'center',
+  minHeight: 136,
+}
+
+const caseActionPanelStyle = {
+  display: 'grid',
+  gap: 7,
+  width: '100%',
+}
+
+const caseActionBadgeStyle = {
+  display: 'block',
+  borderRadius: 8,
+  color: '#fff',
+  padding: '10px 12px',
+  lineHeight: 1.25,
 }
 
 const caseFactStyle = {
@@ -409,6 +459,20 @@ const caseFactLabelStyle = {
   color: 'var(--muted)',
   fontSize: 12,
   marginBottom: 4,
+}
+
+const checklistSectionStyle = {
+  marginBottom: 14,
+  border: '1px solid var(--border)',
+  background: 'var(--panel-bg)',
+  borderRadius: 8,
+  padding: 14,
+}
+
+const checklistGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+  gap: 10,
 }
 
 const summaryHeaderStyle = {
@@ -567,30 +631,6 @@ const emptyAlertStateStyle = {
   fontSize: 14,
 }
 
-const asideStyle = {
-  display: 'grid',
-  gap: 12,
-  alignContent: 'start',
-}
-
-const sideCardStyle = {
-  background: 'var(--panel-bg)',
-  padding: 16,
-  borderRadius: 8,
-  border: '1px solid var(--border)',
-}
-
-const sideTitleStyle = {
-  margin: '0 0 10px',
-}
-
-const actionBoxStyle = {
-  padding: 12,
-  borderRadius: 8,
-  color: '#fff',
-  fontWeight: 800,
-}
-
 const checkItemStyle = {
   borderLeft: '3px solid var(--accent)',
   background: '#111827',
@@ -599,15 +639,6 @@ const checkItemStyle = {
   color: 'var(--text-secondary)',
   lineHeight: 1.45,
   fontSize: 14,
-}
-
-const ethicsCardStyle = {
-  background: 'var(--panel-bg)',
-  border: '1px solid var(--border)',
-  padding: 12,
-  borderRadius: 8,
-  color: 'var(--muted)',
-  lineHeight: 1.45,
 }
 
 function summaryCardStyle(theme) {

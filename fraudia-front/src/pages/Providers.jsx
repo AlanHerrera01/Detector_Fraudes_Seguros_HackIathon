@@ -29,7 +29,7 @@ export default function Providers() {
 
   return (
     <div style={pageStyle}>
-      <section style={heroStyle}>
+      <section className="providers-hero" style={heroStyle}>
         <div>
           <span style={eyebrowStyle}>Red de riesgo</span>
           <h3 style={titleStyle}>Concentraciones por proveedor</h3>
@@ -37,7 +37,7 @@ export default function Providers() {
             Vista para detectar focos donde se repiten casos, asegurados, vehiculos y alertas rojas.
           </p>
         </div>
-        <div style={metricGridStyle}>
+        <div className="providers-metrics" style={metricGridStyle}>
           <Metric label="Proveedores" value={summary.providers} />
           <Metric label="Casos vinculados" value={summary.cases} />
           <Metric label="Alertas rojas" value={summary.redAlerts} tone="red" />
@@ -53,7 +53,7 @@ export default function Providers() {
           </div>
         </div>
 
-        <div style={networkGridStyle}>
+        <div className="providers-network-grid" style={networkGridStyle}>
           {network.slice(0, 4).map((item) => (
             <NetworkCard key={item.beneficiario} item={item} />
           ))}
@@ -68,12 +68,12 @@ export default function Providers() {
           </div>
         </div>
 
-        <div style={rankingStyle}>
+        <div className="providers-ranking" style={rankingStyle}>
           {list.map((p, idx) => {
             const score = Number(p.score_promedio || p.alertas || 0)
             const redAlerts = Number(p.alertas_rojas ?? p.alertas ?? 0)
             return (
-              <div key={p.beneficiario || p.id} style={rankingRowStyle}>
+              <div className="providers-ranking-row" key={p.beneficiario || p.id} style={rankingRowStyle}>
                 <div style={rankNumberStyle}>{idx + 1}</div>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={rowTitleStyle}>{p.beneficiario || p.nombre}</div>

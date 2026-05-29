@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import useFraudData from '../../hooks/useFraudData'
 
@@ -11,6 +11,11 @@ const INITIAL_MESSAGE = {
   from: 'assistant',
   text: 'Hola, soy el asistente de FraudIA. Te ayudo a entender alertas y priorizar revisiones. ¿Qué necesitas?\n- Explicar por qué un siniestro salió rojo, amarillo o verde.\n- Ver los casos con mayor riesgo.\n- Revisar proveedores, documentos faltantes, montos atípicos o patrones.\n- Preparar un resumen ejecutivo para comité.',
   sources: ['rules_engine', 'claims_scores'],
+}
+
+const WELCOME_MESSAGE = {
+  ...INITIAL_MESSAGE,
+  text: 'Hola, soy FraudIA. Puedo ayudarte a explicar un siniestro, priorizar riesgos o preparar un resumen para revision humana. ¿Qué quieres revisar?',
 }
 
 function cleanAssistantText(text) {
@@ -51,20 +56,28 @@ function shouldUseActiveClaim(question) {
   return caseTerms.some((term) => normalized.includes(term))
 }
 
-export default function AIAssistantPanel() {
+export default function AIAssistantPanel({ open = true, onOpen, onClose, variant = 'inline' }) {
   const api = useFraudData()
   const location = useLocation()
-  const [messages, setMessages] = useState([INITIAL_MESSAGE])
+  const [messages, setMessages] = useState([WELCOME_MESSAGE])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [listening, setListening] = useState(false)
-  const [collapsed, setCollapsed] = useState(false)
   const [aiProvider, setAiProvider] = useState('gemini')
+  const messagesEndRef = useRef(null)
   const speechSupported = useMemo(() => typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition), [])
   const activeClaimId = useMemo(() => {
     const match = location.pathname.match(/^\/siniestros\/([^/]+)/)
     return match ? decodeURIComponent(match[1]) : null
   }, [location.pathname])
+
+  useEffect(() => {
+    if (!open) return
+    const frame = requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [messages, loading, open])
 
   async function send(text = input) {
     const question = text.trim()
@@ -111,86 +124,92 @@ export default function AIAssistantPanel() {
     recognition.start()
   }
 
-  if (collapsed) {
+  if (!open && variant === 'floating') {
     return (
-      <aside style={collapsedPanelStyle} aria-label="Asistente IA compacto">
+      <aside className="ai-assistant-panel-collapsed" style={collapsedPanelStyle} aria-label="Asistente IA compacto">
         <button
-          onClick={() => setCollapsed(false)}
-          title="Expandir asistente IA"
+          onClick={onOpen}
+          title="Conversar con la IA"
           style={collapsedToggleStyle}
         >
           IA
         </button>
-        <div style={collapsedRailTextStyle}>Asistente</div>
       </aside>
     )
   }
 
+  if (!open) return null
+
+  const isFloating = variant === 'floating'
+  const isDrawer = variant === 'drawer'
+
   return (
-    <aside style={panelStyle}>
-      <header style={headerStyle}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={avatarStyle}>IA</div>
-          <div>
-            <h3 style={{ margin: 0, color: '#fff' }}>AI Assistant</h3>
-            <p style={{ color: 'var(--accent)', marginTop: 2, fontSize: 12 }}>{providerName(aiProvider)}</p>
+      <aside
+        className={`ai-assistant-panel ${isFloating ? 'assistant-floating-panel' : ''} ${isDrawer ? 'assistant-drawer-panel' : 'assistant-inline-panel'}`}
+        style={isFloating ? floatingPanelStyle : isDrawer ? drawerPanelStyle : panelStyle}
+        aria-label="Asistente IA FraudIA"
+      >
+        <header style={headerStyle}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={avatarStyle}>IA</div>
+            <div>
+              <h3 style={{ margin: 0, color: '#fff' }}>Asistente IA FraudIA</h3>
+              <p style={{ color: '#bfdbfe', marginTop: 3, fontSize: 12 }}>
+                {activeClaimId ? `Caso activo: ${activeClaimId}` : 'Analisis conversacional'} · {providerName(aiProvider)}
+              </p>
+            </div>
           </div>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => setMessages([INITIAL_MESSAGE])} style={resetStyle}>Nuevo</button>
-          <button onClick={() => setCollapsed(true)} title="Reducir asistente IA" style={resetStyle}>Cerrar</button>
-        </div>
-      </header>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setMessages([WELCOME_MESSAGE])} style={resetStyle}>Nuevo</button>
+            {onClose && <button onClick={onClose} title="Cerrar asistente IA" style={resetStyle}>Cerrar</button>}
+          </div>
+        </header>
 
-      <section style={chatIntroStyle}>
-        <strong>Asistente IA FraudIA</strong>
-        <span style={chatIntroSubtitleStyle}>
-          {activeClaimId ? `Contexto activo: siniestro ${activeClaimId}` : 'Analisis conversacional de siniestros'}
-        </span>
-      </section>
-
-      <section style={messagesStyle}>
-        {messages.map((message, index) => (
-          <Message key={`${message.from}-${index}`} message={message} />
-        ))}
-        {loading && <div style={thinkingStyle}>Analizando casos y reglas...</div>}
-      </section>
-
-      <footer style={composerStyle}>
-        <select value={aiProvider} onChange={(event) => setAiProvider(event.target.value)} style={providerSelectStyle} aria-label="Modelo IA">
-          {AI_PROVIDERS.map((provider) => (
-            <option key={provider.value} value={provider.value}>{provider.label}</option>
+        <section style={messagesStyle}>
+          {messages.map((message, index) => (
+            <Message key={`${message.from}-${index}`} message={message} />
           ))}
-        </select>
-        <textarea
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.shiftKey) {
-              event.preventDefault()
-              send()
-            }
-          }}
-          placeholder="Pregunta al agente..."
-          rows={3}
-          style={textAreaStyle}
-        />
-        <div style={{ display: 'grid', gridTemplateColumns: speechSupported ? '44px 1fr' : '1fr', gap: 8 }}>
-          {speechSupported && (
-            <button
-              onClick={startVoice}
-              disabled={listening}
-              title={listening ? 'Escuchando' : 'Dictar'}
-              aria-label={listening ? 'Escuchando' : 'Dictar'}
-              style={iconButtonStyle}
-            >
-              <MicIcon />
-            </button>
-          )}
-          <button onClick={() => send()} disabled={!input.trim() || loading} style={sendStyle}>Enviar</button>
-        </div>
-      </footer>
-    </aside>
+          {loading && <TypingIndicator />}
+          <div ref={messagesEndRef} />
+        </section>
+
+        <footer style={composerStyle}>
+          <div style={composerTopStyle}>
+            <select value={aiProvider} onChange={(event) => setAiProvider(event.target.value)} style={providerSelectStyle} aria-label="Modelo IA">
+              {AI_PROVIDERS.map((provider) => (
+                <option key={provider.value} value={provider.value}>{provider.label}</option>
+              ))}
+            </select>
+            {speechSupported && (
+              <button
+                onClick={startVoice}
+                disabled={listening}
+                title={listening ? 'Escuchando' : 'Dictar'}
+                aria-label={listening ? 'Escuchando' : 'Dictar'}
+                style={iconButtonStyle}
+              >
+                <MicIcon />
+              </button>
+            )}
+          </div>
+          <div style={isDrawer ? composerInputRowWideStyle : composerInputRowStyle}>
+            <textarea
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault()
+                  send()
+                }
+              }}
+              placeholder="Pregunta al agente..."
+              rows={1}
+              style={textAreaStyle}
+            />
+            <button onClick={() => send()} disabled={!input.trim() || loading} style={isDrawer ? sendWideStyle : sendStyle}>Enviar</button>
+          </div>
+        </footer>
+      </aside>
   )
 }
 
@@ -213,6 +232,19 @@ function Message({ message }) {
   )
 }
 
+function TypingIndicator() {
+  return (
+    <div style={thinkingStyle}>
+      <span>Escribiendo</span>
+      <span className="typing-dots" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </span>
+    </div>
+  )
+}
+
 function MicIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -224,59 +256,76 @@ function MicIcon() {
 }
 
 const panelStyle = {
-  width: 380,
-  minWidth: 380,
+  width: '100%',
+  height: 520,
+  minHeight: 520,
+  maxHeight: 520,
   background: 'var(--panel-bg)',
-  borderLeft: '1px solid var(--border)',
+  border: '1px solid var(--border-light)',
+  borderRadius: 8,
   display: 'flex',
   flexDirection: 'column',
-  height: '100vh',
-  position: 'sticky',
-  top: 0,
-  transition: 'width 180ms ease, min-width 180ms ease',
-  zIndex: 5,
+  overflow: 'hidden',
+  boxShadow: '0 18px 38px rgba(0, 0, 0, 0.24)',
+}
+
+const floatingPanelStyle = {
+  ...panelStyle,
+  position: 'fixed',
+  right: 22,
+  bottom: 22,
+  zIndex: 60,
+  width: 'min(420px, calc(100vw - 128px))',
+  height: 'min(540px, calc(100vh - 90px))',
+  minHeight: 420,
+  maxHeight: 540,
+  boxShadow: '0 24px 58px rgba(0, 0, 0, 0.36)',
+}
+
+const drawerPanelStyle = {
+  ...panelStyle,
+  position: 'fixed',
+  right: 24,
+  top: 92,
+  zIndex: 70,
+  width: 'min(580px, calc(100vw - 48px))',
+  height: 'min(720px, calc(100vh - 116px))',
+  minHeight: 560,
+  maxHeight: 'calc(100vh - 116px)',
+  boxShadow: '0 24px 70px rgba(0, 0, 0, 0.42)',
 }
 
 const collapsedPanelStyle = {
-  width: 64,
-  minWidth: 64,
-  background: 'var(--panel-bg)',
-  borderLeft: '1px solid var(--border)',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  gap: 12,
-  height: '100vh',
-  position: 'sticky',
-  top: 0,
-  padding: '14px 8px',
-  transition: 'width 180ms ease, min-width 180ms ease',
-  zIndex: 5,
+  position: 'fixed',
+  right: 22,
+  bottom: 22,
+  zIndex: 60,
+  width: 62,
+  height: 62,
+  display: 'grid',
+  placeItems: 'center',
+  pointerEvents: 'none',
 }
 
 const collapsedToggleStyle = {
-  width: 44,
-  height: 44,
-  borderRadius: 8,
+  width: 62,
+  height: 62,
+  borderRadius: 999,
   display: 'grid',
   placeItems: 'center',
-  background: '#0f172a',
+  background: 'linear-gradient(135deg, #2563eb 0%, #0ea5e9 55%, #10b981 100%)',
   color: '#fff',
   fontWeight: 900,
+  fontSize: 18,
   padding: 0,
-}
-
-const collapsedRailTextStyle = {
-  writingMode: 'vertical-rl',
-  textOrientation: 'mixed',
-  color: '#64748b',
-  fontSize: 12,
-  letterSpacing: 0,
+  border: '1px solid rgba(191, 219, 254, 0.8)',
+  boxShadow: '0 16px 36px rgba(14, 165, 233, 0.35)',
+  pointerEvents: 'auto',
 }
 
 const headerStyle = {
   background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0ea5e9 100%)',
-  padding: 16,
+  padding: 14,
   display: 'flex',
   justifyContent: 'space-between',
   gap: 12,
@@ -284,8 +333,8 @@ const headerStyle = {
 }
 
 const avatarStyle = {
-  width: 38,
-  height: 38,
+  width: 34,
+  height: 34,
   borderRadius: 8,
   display: 'grid',
   placeItems: 'center',
@@ -305,29 +354,16 @@ const providerSelectStyle = {
   // Estilos base vienen de index.css
 }
 
-const chatIntroStyle = {
-  padding: '12px 14px',
-  borderBottom: '1px solid var(--border)',
-  display: 'grid',
-  gap: 2,
-  background: 'var(--card-bg)',
-  color: 'var(--text)',
-  fontSize: 14,
-}
-
-const chatIntroSubtitleStyle = {
-  color: '#64748b',
-  fontSize: 12,
-}
-
 const messagesStyle = {
   flex: 1,
   overflow: 'auto',
-  padding: 14,
+  padding: 16,
   display: 'flex',
   flexDirection: 'column',
   gap: 12,
-  background: 'var(--page-bg)',
+  background: '#081027',
+  borderTop: '1px solid rgba(96, 165, 250, 0.16)',
+  borderBottom: '1px solid rgba(96, 165, 250, 0.16)',
 }
 
 const composerStyle = {
@@ -338,15 +374,45 @@ const composerStyle = {
   background: 'var(--card-bg)',
 }
 
+const composerTopStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(120px, 1fr) auto',
+  gap: 8,
+  alignItems: 'center',
+}
+
+const composerInputRowStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr)',
+  gap: 8,
+  alignItems: 'stretch',
+}
+
+const composerInputRowWideStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr) 120px',
+  gap: 8,
+  alignItems: 'stretch',
+}
+
 const textAreaStyle = {
   resize: 'none',
-  lineHeight: 1.45,
+  lineHeight: 1.35,
+  minHeight: 44,
+  maxHeight: 92,
   // Otros estilos vienen de index.css
 }
 
 const sendStyle = {
   background: '#0f172a',
   color: '#fff',
+  minWidth: '100%',
+  fontWeight: 800,
+}
+
+const sendWideStyle = {
+  ...sendStyle,
+  minWidth: 120,
 }
 
 const iconButtonStyle = {
@@ -360,7 +426,7 @@ const iconButtonStyle = {
 const userBubbleStyle = {
   background: '#0f172a',
   color: '#fff',
-  padding: 10,
+  padding: 9,
   borderRadius: 8,
   lineHeight: 1.45,
   fontSize: 13,
@@ -370,10 +436,10 @@ const assistantBubbleStyle = {
   background: 'var(--panel-bg)',
   color: 'var(--text)',
   border: '1px solid var(--border)',
-  padding: 12,
+  padding: 10,
   borderRadius: 8,
   lineHeight: 1.55,
-  fontSize: 14,
+  fontSize: 13,
 }
 
 const assistantBubbleHeaderStyle = {
@@ -404,4 +470,8 @@ const thinkingStyle = {
   border: '1px solid var(--border)',
   padding: 10,
   borderRadius: 8,
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
+  fontWeight: 700,
 }

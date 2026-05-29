@@ -109,7 +109,7 @@ export default function AIAgent() {
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
-      <section style={heroStyle}>
+      <section className="agent-hero" style={heroStyle}>
         <div style={{ display: 'grid', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={avatarStyle}>IA</div>
@@ -140,7 +140,7 @@ export default function AIAgent() {
         </div>
       </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 330px', gap: 16 }}>
+      <div className="agent-layout" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 330px', gap: 16 }}>
         <section style={chatShellStyle}>
           <div style={messagesStyle}>
             {messages.map((message, index) => (
@@ -155,7 +155,7 @@ export default function AIAgent() {
                 <button key={item.title} onClick={() => send(item.prompt)} style={smallActionStyle}>{item.title}</button>
               ))}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: speechSupported ? '1fr auto auto' : '1fr auto', gap: 8 }}>
+            <div className="agent-composer-grid" style={{ display: 'grid', gridTemplateColumns: speechSupported ? '1fr auto auto' : '1fr auto', gap: 8 }}>
               <textarea
                 value={input}
                 onChange={(event) => setInput(event.target.value)}

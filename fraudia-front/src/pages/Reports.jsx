@@ -114,7 +114,7 @@ export default function Reports() {
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
-      <section style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'center' }}>
+      <section className="reports-header" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'center' }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 26 }}>Reportes</h2>
           <p style={{ color: 'var(--muted)', marginTop: 6, maxWidth: 760 }}>
@@ -133,7 +133,7 @@ export default function Reports() {
 
       {error && <section style={errorStyle}>{error}</section>}
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
+      <section className="reports-metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
         <Metric label="Registros" value={rows.length} />
         <Metric label="Casos rojos" value={red} />
         <Metric label="Casos amarillos" value={yellow} />
@@ -148,7 +148,7 @@ export default function Reports() {
             <h3 style={{ margin: 0 }}>Reporte de auditoria</h3>
             <p style={{ color: 'var(--muted)', marginTop: 4 }}>Vista previa de los primeros registros del reporte descargable.</p>
           </div>
-          <div style={filtersGridStyle}>
+          <div className="reports-filters-grid" style={filtersGridStyle}>
             <label style={fieldStyle}>
               <span>Archivo ingresado</span>
               <select value={filters.upload_batch_id} onChange={(event) => setFilters((current) => ({ ...current, upload_batch_id: event.target.value }))} style={selectStyle}>
@@ -255,14 +255,14 @@ function ModelMetricsSection({ metrics, loading }) {
         <div style={{ color: 'var(--muted)', marginTop: 16 }}>Cargando métricas del modelo...</div>
       ) : (
         <div style={{ display: 'grid', gap: 14, marginTop: 16 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
+          <div className="model-metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
             <Metric label="Casos evaluados" value={metrics?.total_casos ?? 0} />
             <Metric label="Casos marcados" value={`${metrics?.porcentaje_casos_marcados ?? 0}%`} />
             <Metric label="Señales NLP" value={nlp.casos_con_senales_narrativa ?? 0} />
             <Metric label="Casos con alertas" value={rules.casos_con_alertas ?? 0} />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 14 }}>
+          <div className="model-two-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 14 }}>
             <div style={subPanelStyle}>
               <div style={subHeaderStyle}>
                 <div>
@@ -309,7 +309,7 @@ function ModelMetricsSection({ metrics, loading }) {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div className="model-two-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <div style={subPanelStyle}>
               <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                 Ranking de anomalías

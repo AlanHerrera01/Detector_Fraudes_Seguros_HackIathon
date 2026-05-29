@@ -31,6 +31,7 @@ export default function Sidebar() {
 
   return (
     <aside
+      className="app-sidebar"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -106,14 +107,4 @@ const toggleStyle = {
   border: '1px solid rgba(255,255,255,0.12)',
   padding: '8px 10px',
   borderRadius: 10,
-}
-
-const compactToggleStyle = {
-  background: 'rgba(255,255,255,0.08)',
-  color: '#cbd5e1',
-  border: '1px solid rgba(255,255,255,0.12)',
-  padding: '10px 12px',
-  width: '100%',
-  borderRadius: 12,
-  fontSize: 16,
 }

@@ -55,7 +55,7 @@ export default function RulesApplied() {
         </p>
       </section>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+      <section className="rules-level-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
         {SCORE_LEVELS.map(([level, range, action]) => (
           <div key={level} style={cardStyle}>
             <span style={{ color: 'var(--muted)', fontSize: 12 }}>Nivel {level}</span>

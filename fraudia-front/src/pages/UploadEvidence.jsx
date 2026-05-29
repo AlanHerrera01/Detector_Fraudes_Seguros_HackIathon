@@ -81,7 +81,7 @@ export default function UploadEvidence() {
         )}
       </section>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+      <section className="upload-info-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
         <div style={{ background: 'var(--panel-bg)', padding: 14, borderRadius: 8 }}>
           <strong>CSV estructurado</strong>
           <p style={{ color: 'var(--muted)', marginTop: 8 }}>
