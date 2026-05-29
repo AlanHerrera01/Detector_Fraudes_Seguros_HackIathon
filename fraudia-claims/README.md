@@ -29,7 +29,7 @@ Backend FastAPI de FraudIA. Este servicio recibe archivos de siniestros, normali
 - Scoring final de 0 a 100.
 - Clasificacion operativa verde, amarillo y rojo.
 - NLP para narrativa vaga, sensible, repetida o inconsistente.
-- ML supervisado con `RandomForestClassifier` si hay etiqueta.
+- ML persistente con `model.pkl` y `RandomForestClassifier` si hay etiqueta.
 - Deteccion de anomalias con `IsolationForest` si no hay etiqueta suficiente.
 - Explicacion ejecutiva por siniestro.
 - Reportes de auditoria en JSON, CSV y PDF.
@@ -56,6 +56,7 @@ fraudia-claims/
     rules/            Reglas de negocio
   data/
     synthetic/        Datasets sinteticos de prueba
+    models/           Modelo persistente entrenado localmente
   docs/               Documentacion tecnica
   tests/              Pruebas unitarias
 ```
@@ -135,6 +136,14 @@ GEMINI_TEMPERATURE=0.45
 GEMINI_TOP_P=0.9
 GEMINI_VERIFY_SSL=true
 ```
+
+### Modelo ML Persistente
+
+```env
+FRAUDIA_MODEL_PATH=data/models/model.pkl
+```
+
+Si esta variable no se define, el backend usa `data/models/model.pkl` por defecto.
 
 ### PostgreSQL Local O Neon
 
@@ -227,6 +236,36 @@ Sin PostgreSQL:
 - El historico se guarda en `data/processed/upload_history.csv`.
 - El activo se guarda en `data/processed/active_upload.csv`.
 - `data/processed/` debe permanecer fuera de git.
+
+## Entrenamiento ML Persistente
+
+El backend usa un enfoque hibrido:
+
+- Reglas explicables y NLP calculan senales trazables.
+- El modelo ML suma un componente de riesgo de hasta 25 puntos.
+- Si existe `data/models/model.pkl`, el scoring lo reutiliza.
+- Si hay historico con `etiqueta_fraude_simulada`, el backend puede actualizar el modelo supervisado.
+- Si no hay etiquetas suficientes, usa `IsolationForest` como respaldo de anomalias.
+
+Entrenar o regenerar el modelo:
+
+```bash
+cd fraudia-claims
+.venv\Scripts\activate
+$env:PYTHONPATH='.'
+py -3.11 scripts/train_model.py data/synthetic/fraudia_dataset_01_bajo_riesgo_operativo_2026.xlsx data/synthetic/fraudia_dataset_02_mixto_multiramo_2026.xlsx data/synthetic/fraudia_dataset_03_red_proveedores_recurrentes_2026.xlsx data/synthetic/fraudia_dataset_04_nlp_narrativas_sospechosas_2026.xlsx
+```
+
+Salida esperada:
+
+```text
+Modelo guardado en: ...\data\models\model.pkl
+Tipo: supervised_random_forest
+Filas de entrenamiento: ...
+Etiquetas supervisadas: si
+```
+
+Esto no reemplaza las reglas; las complementa. El score final sigue siendo explicable y limitado a `0/100`.
 
 ## Endpoints
 

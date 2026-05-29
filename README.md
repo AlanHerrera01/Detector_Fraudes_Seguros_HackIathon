@@ -43,7 +43,7 @@ En aseguradoras y equipos de auditoria, revisar todos los siniestros manualmente
 - Semaforo operativo: verde, amarillo y rojo.
 - Reglas de negocio explicables con codigos RF, S y NLP.
 - Analisis de narrativa para detectar descripciones vagas, sensibles, repetidas o inconsistentes.
-- Modelo ML supervisado cuando existe etiqueta de fraude simulada.
+- Modelo ML persistente en `model.pkl` cuando existe etiqueta de fraude simulada.
 - Deteccion de anomalias cuando no hay etiqueta disponible.
 - Dashboard ejecutivo con KPIs, tendencias y ranking de proveedores.
 - Bandeja de siniestros con busqueda, filtros y paginacion.
@@ -85,7 +85,7 @@ Gemini API - agente IA
 2. El frontend consume la API del backend desplegado en Railway.
 3. El usuario carga un CSV, Excel o PDF.
 4. CSV/Excel se convierten en dataset activo para dashboard, reportes y agente.
-5. El backend calcula score, reglas, NLP, anomalias y explicaciones.
+5. El backend calcula score, reglas, NLP, modelo ML persistente, anomalias y explicaciones.
 6. Si PostgreSQL esta activo, Neon guarda historico y ultimo batch.
 7. El analista revisa dashboard, Caso 360, proveedores y reportes.
 8. El agente IA responde preguntas usando el contexto calculado por el backend.
@@ -95,7 +95,7 @@ Gemini API - agente IA
 FraudIA usa una estrategia hibrida, pensada para ser explicable ante un jurado o equipo de auditoria:
 
 - **Reglas de negocio**: alertas trazables por documentos, fechas, proveedor, frecuencia y narrativa.
-- **ML tabular**: `RandomForestClassifier` cuando existe etiqueta; `IsolationForest` como respaldo sin etiqueta.
+- **ML tabular persistente**: reutiliza `fraudia-claims/data/models/model.pkl`; `RandomForestClassifier` cuando existe etiqueta; `IsolationForest` como respaldo sin etiqueta.
 - **NLP reproducible**: analisis transparente sobre texto del reclamo.
 - **LLM conversacional**: Gemini responde preguntas del analista con contexto limitado al portafolio analizado.
 - **Explicabilidad**: cada caso incluye resumen ejecutivo, senales principales, recomendacion operativa y nota etica.
