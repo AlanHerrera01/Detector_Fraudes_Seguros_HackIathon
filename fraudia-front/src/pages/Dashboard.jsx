@@ -383,7 +383,7 @@ export default function Dashboard() {
         <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 14, marginTop: 16 }}>
           <StatCard label="Siniestros analizados" value={summary.total} accent="var(--accent)" hint="Archivo activo" info="Total de casos cargados para revision." />
           <StatCard label="Casos criticos" value={summary.critical} accent="#7f1d1d" hint="Auditoria inmediata" info="Casos con score critico o cercano a 90+." />
-          <StatCard label="Score promedio" value={(stats.score_promedio ?? 0).toFixed(1)} accent="var(--risk-yellow)" hint="Riesgo agregado" info="Promedio del score calculado por reglas, NLP y ML." />
+          <StatCard label="Score promedio" value={`${(stats.score_promedio ?? 0).toFixed(1)}/100`} accent="var(--risk-yellow)" hint="Riesgo agregado" info="Promedio del score calculado por reglas, NLP y ML." />
           <StatCard label="Casos con alerta" value={summary.claimsWithAlerts} accent="var(--risk-green)" hint="Senales detectadas" info="Casos con al menos una alerta; no confirma fraude." />
           <StatCard label="Ahorro estimado" value={formatCurrency(stats.ahorro_potencial ?? 0)} accent="#14b8a6" hint="Potencial auditado" info="Estimacion referencial del monto que podria priorizarse para revision antes de pago." />
         </div>
@@ -519,7 +519,6 @@ function ActiveDatasetPanel({ dataset, total }) {
   const filename = dataset?.filename || 'Dataset base'
   const label = dataset?.label || 'Archivo activo'
   const visibleClaims = dataset?.visibleClaims ?? total
-  const trainingClaims = dataset?.trainingClaims
   const storage = dataset?.storage || 'api'
 
   return (
@@ -537,11 +536,6 @@ function ActiveDatasetPanel({ dataset, total }) {
       <div style={activeDatasetMetricStyle}>
         <span>Casos en este archivo</span>
         <strong style={activeDatasetMetricValueStyle}>{visibleClaims ?? 0}</strong>
-      </div>
-
-      <div style={activeDatasetMetricStyle}>
-        <span>Historico entrenamiento</span>
-        <strong style={activeDatasetMetricValueStyle}>{trainingClaims ?? 'N/A'}</strong>
       </div>
 
       <div style={activeDatasetMetricStyle}>
@@ -870,7 +864,7 @@ const dashboardOverviewStyle = {
 
 const activeDatasetGridStyle = {
   display: 'grid',
-  gridTemplateColumns: 'minmax(0, 1.6fr) repeat(3, minmax(150px, 0.5fr))',
+  gridTemplateColumns: 'minmax(0, 1.8fr) repeat(2, minmax(170px, 0.55fr))',
   gap: 12,
   alignItems: 'stretch',
 }

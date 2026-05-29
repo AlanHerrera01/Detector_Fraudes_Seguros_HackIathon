@@ -6,7 +6,14 @@ export function levelFromScore(score) {
 }
 
 export function formatCurrency(n) {
-  return Number(n || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
+  const value = Number(n || 0)
+  const hasCents = Math.round(value * 100) % 100 !== 0
+  return value.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: hasCents ? 2 : 0,
+    maximumFractionDigits: hasCents ? 2 : 0,
+  })
 }
 
 export function formatDate(d) {
