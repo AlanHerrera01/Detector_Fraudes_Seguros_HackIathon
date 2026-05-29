@@ -697,57 +697,85 @@ function BusinessMixPanel({ ramoItems, coverageItems, nav }) {
 }
 
 function CityCasesPanel({ cities, total, nav }) {
+  const [selectedCity, setSelectedCity] = useState(cities[0]?.city || '')
+  const maxCases = Math.max(1, ...cities.map((item) => item.total || 0))
+  const activeCity = cities.find((item) => item.city === selectedCity) || cities[0]
+
   return (
     <Panel style={{ padding: 22 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
         <div>
-          <h3 style={{ margin: 0 }}>Ciudades con mas casos</h3>
+          <h3 style={{ margin: 0 }}>Mapa de calor por ciudad</h3>
           <p style={{ color: 'var(--muted)', marginTop: 6 }}>
-            Representa las ciudades con mayor volumen de siniestros y el tipo de caso predominante por ramo y cobertura.
+            Intensidad por volumen de siniestros y color de borde por nivel promedio de riesgo.
           </p>
         </div>
         <button onClick={() => nav('/siniestros')} style={panelButtonStyle}>Ver casos</button>
       </div>
 
-      <div style={{ display: 'grid', gap: 12, marginTop: 16 }}>
-        {cities.length === 0 && (
-          <div style={{ color: 'var(--muted)', padding: 14, border: '1px solid var(--border)', borderRadius: 8 }}>
-            No hay ciudades registradas en el archivo activo.
-          </div>
-        )}
-        {cities.map((item) => {
-          const cityPct = pct(item.total, total)
-          const redPct = pct(item.rojo, item.total)
-          const yellowPct = pct(item.amarillo, item.total)
-          const greenPct = Math.max(0, 100 - redPct - yellowPct)
+      {cities.length === 0 && (
+        <div style={{ color: 'var(--muted)', padding: 14, border: '1px solid var(--border)', borderRadius: 8, marginTop: 16 }}>
+          No hay ciudades registradas en el archivo activo.
+        </div>
+      )}
 
-          return (
-            <div key={item.city} style={cityRowStyle}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
-                  <strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.city}</strong>
-                  <span style={{ color: 'var(--accent)', fontWeight: 900 }}>{item.total} casos</span>
-                </div>
-                <div style={{ display: 'flex', height: 12, borderRadius: 999, overflow: 'hidden', background: 'var(--border)', marginTop: 10 }}>
-                  <div title={`${greenPct}% bajo`} style={{ width: `${greenPct}%`, background: 'var(--risk-green)' }} />
-                  <div title={`${yellowPct}% medio`} style={{ width: `${yellowPct}%`, background: 'var(--risk-yellow)' }} />
-                  <div title={`${redPct}% critico`} style={{ width: `${redPct}%`, background: 'var(--risk-red)' }} />
-                </div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                  <span style={cityTagStyle}>Ramo: {item.topLine}</span>
-                  <span style={cityTagStyle}>Cobertura: {item.topCoverage}</span>
-                  <span style={cityTagStyle}>{cityPct}% del archivo</span>
-                </div>
-              </div>
-              <div style={{ display: 'grid', gap: 6, justifyItems: 'end', alignContent: 'center' }}>
-                <strong style={{ color: item.scoreAvg >= 76 ? 'var(--risk-red)' : item.scoreAvg >= 41 ? 'var(--risk-yellow)' : 'var(--risk-green)', fontSize: 22 }}>{item.scoreAvg}</strong>
-                <span style={{ color: 'var(--muted)', fontSize: 12 }}>Score prom.</span>
-                <span style={{ color: 'var(--muted)', fontSize: 12 }}>{item.rojo} criticos</span>
-              </div>
+      {cities.length > 0 && (
+        <>
+          <div className="city-heatmap-grid" style={cityHeatmapGridStyle}>
+            {cities.map((item) => {
+              const intensity = Math.max(0.18, item.total / maxCases)
+              const riskColor = item.scoreAvg >= 76 ? 'var(--risk-red)' : item.scoreAvg >= 41 ? 'var(--risk-yellow)' : 'var(--risk-green)'
+              const isActive = activeCity?.city === item.city
+
+              return (
+                <button
+                  key={item.city}
+                  onClick={() => setSelectedCity(item.city)}
+                  style={cityHeatCellStyle(intensity, riskColor, isActive)}
+                  title={`${item.city}: ${item.total} casos, score promedio ${item.scoreAvg}`}
+                >
+                  <span style={{ fontSize: 13, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.city}</span>
+                  <strong style={{ fontSize: 26, lineHeight: 1 }}>{item.total}</strong>
+                  <span style={{ color: 'var(--muted)', fontSize: 12 }}>Score {item.scoreAvg}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          <div style={cityHeatmapLegendStyle}>
+            <span><b style={{ color: 'var(--risk-green)' }}>Bajo</b> score promedio</span>
+            <span><b style={{ color: 'var(--risk-yellow)' }}>Medio</b> score promedio</span>
+            <span><b style={{ color: 'var(--risk-red)' }}>Critico</b> score promedio</span>
+            <span>Mas brillo = mas casos</span>
+          </div>
+        </>
+      )}
+
+      {activeCity && (
+        <div style={cityRowStyle}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+              <strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeCity.city}</strong>
+              <span style={{ color: 'var(--accent)', fontWeight: 900 }}>{activeCity.total} casos</span>
             </div>
-          )
-        })}
-      </div>
+            <div style={{ display: 'flex', height: 12, borderRadius: 999, overflow: 'hidden', background: 'var(--border)', marginTop: 10 }}>
+              <div title={`${pct(activeCity.verde, activeCity.total)}% bajo`} style={{ width: `${pct(activeCity.verde, activeCity.total)}%`, background: 'var(--risk-green)' }} />
+              <div title={`${pct(activeCity.amarillo, activeCity.total)}% medio`} style={{ width: `${pct(activeCity.amarillo, activeCity.total)}%`, background: 'var(--risk-yellow)' }} />
+              <div title={`${pct(activeCity.rojo, activeCity.total)}% critico`} style={{ width: `${pct(activeCity.rojo, activeCity.total)}%`, background: 'var(--risk-red)' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+              <span style={cityTagStyle}>Ramo: {activeCity.topLine}</span>
+              <span style={cityTagStyle}>Cobertura: {activeCity.topCoverage}</span>
+              <span style={cityTagStyle}>{pct(activeCity.total, total)}% del archivo</span>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gap: 6, justifyItems: 'end', alignContent: 'center' }}>
+            <strong style={{ color: activeCity.scoreAvg >= 76 ? 'var(--risk-red)' : activeCity.scoreAvg >= 41 ? 'var(--risk-yellow)' : 'var(--risk-green)', fontSize: 22 }}>{activeCity.scoreAvg}</strong>
+            <span style={{ color: 'var(--muted)', fontSize: 12 }}>Score prom.</span>
+            <span style={{ color: 'var(--muted)', fontSize: 12 }}>{activeCity.rojo} criticos</span>
+          </div>
+        </div>
+      )}
     </Panel>
   )
 }
@@ -894,6 +922,39 @@ const portfolioStatsStyle = {
   gap: 10,
 }
 
+const cityHeatmapGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+  gap: 12,
+  marginTop: 16,
+}
+
+function cityHeatCellStyle(intensity, riskColor, active) {
+  const glow = Math.round(18 + intensity * 44)
+  return {
+    display: 'grid',
+    gap: 8,
+    minHeight: 118,
+    padding: 14,
+    textAlign: 'left',
+    borderRadius: 8,
+    background: `linear-gradient(135deg, rgba(20, 184, 166, ${0.12 + intensity * 0.28}), rgba(96, 165, 250, ${0.06 + intensity * 0.18}))`,
+    border: `1px solid ${riskColor}`,
+    color: 'var(--text)',
+    boxShadow: active ? `0 0 0 3px rgba(96, 165, 250, 0.22), 0 0 ${glow}px rgba(20, 184, 166, 0.18)` : `0 0 ${glow}px rgba(20, 184, 166, 0.08)`,
+  }
+}
+
+const cityHeatmapLegendStyle = {
+  display: 'flex',
+  gap: 10,
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  marginTop: 12,
+  color: 'var(--muted)',
+  fontSize: 12,
+}
+
 const cityRowStyle = {
   display: 'grid',
   gridTemplateColumns: 'minmax(0, 1fr) minmax(84px, auto)',
@@ -903,6 +964,7 @@ const cityRowStyle = {
   border: '1px solid var(--border)',
   padding: 14,
   borderRadius: 8,
+  marginTop: 16,
 }
 
 const cityTagStyle = {
