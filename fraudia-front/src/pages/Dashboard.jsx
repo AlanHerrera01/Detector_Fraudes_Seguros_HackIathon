@@ -192,7 +192,7 @@ export default function Dashboard() {
     const red = stats?.casos_rojos ?? stats?.casos_rojo ?? claims.filter((item) => item.nivel_riesgo === 'rojo').length
     const yellow = stats?.casos_amarillos ?? stats?.casos_amarillo ?? claims.filter((item) => item.nivel_riesgo === 'amarillo').length
     const green = stats?.casos_verdes ?? stats?.casos_verde ?? claims.filter((item) => item.nivel_riesgo === 'verde').length
-    const critical = stats?.casos_criticos ?? claims.filter((item) => item.clasificacion_riesgo === 'critico' || Number(item.score || 0) >= 90).length
+    const critical = red
     const top = [...claims].sort((a, b) => b.score - a.score).slice(0, 25)
     const claimsWithAlerts = stats?.casos_con_alertas ?? claims.filter((item) => (item.alertas_detalle || []).length > 0).length
     const uniqueProviders = new Set(claims.map((item) => item.beneficiario || '').filter(Boolean)).size
@@ -382,7 +382,7 @@ export default function Dashboard() {
 
         <div className="dashboard-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 14, marginTop: 16 }}>
           <StatCard label="Siniestros analizados" value={summary.total} accent="var(--accent)" hint="Archivo activo" info="Total de casos cargados para revision." />
-          <StatCard label="Casos criticos" value={summary.critical} accent="#7f1d1d" hint="Auditoria inmediata" info="Casos con score critico o cercano a 90+." />
+          <StatCard label="Casos criticos" value={summary.critical} accent="#7f1d1d" hint="Auditoria inmediata" info="Casos en nivel rojo operativo, desde score 76+." />
           <StatCard label="Score promedio" value={`${(stats.score_promedio ?? 0).toFixed(1)}/100`} accent="var(--risk-yellow)" hint="Riesgo agregado" info="Promedio del score calculado por reglas, NLP y ML." />
           <StatCard label="Casos con alerta" value={summary.claimsWithAlerts} accent="var(--risk-green)" hint="Senales detectadas" info="Casos con al menos una alerta; no confirma fraude." />
           <StatCard label="Ahorro estimado" value={formatCurrency(stats.ahorro_potencial ?? 0)} accent="#14b8a6" hint="Potencial auditado" info="Estimacion referencial del monto que podria priorizarse para revision antes de pago." />
