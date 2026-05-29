@@ -27,6 +27,34 @@ function topLabelFromMap(map, fallback) {
   return label || fallback
 }
 
+function cityPoint(city) {
+  const key = String(city || '').trim().toLowerCase()
+  const points = {
+    quito: { x: 52, y: 26 },
+    guayaquil: { x: 32, y: 62 },
+    cuenca: { x: 45, y: 76 },
+    manta: { x: 20, y: 49 },
+    portoviejo: { x: 24, y: 53 },
+    esmeraldas: { x: 30, y: 18 },
+    ambato: { x: 50, y: 42 },
+    riobamba: { x: 50, y: 52 },
+    loja: { x: 48, y: 88 },
+    machala: { x: 35, y: 82 },
+    ibarra: { x: 54, y: 18 },
+    latacunga: { x: 50, y: 36 },
+    tulcan: { x: 56, y: 10 },
+    'santo domingo': { x: 39, y: 34 },
+    quevedo: { x: 34, y: 49 },
+    babahoyo: { x: 35, y: 58 },
+    milagro: { x: 37, y: 62 },
+    duran: { x: 34, y: 64 },
+    bogota: { x: 76, y: 15 },
+    medellin: { x: 66, y: 24 },
+    cali: { x: 70, y: 38 },
+  }
+  return points[key]
+}
+
 function Badge({ label, color }) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 999, background: 'var(--card-bg)', color, fontWeight: 700, textTransform: 'uppercase', fontSize: 11 }}>
@@ -700,6 +728,10 @@ function CityCasesPanel({ cities, total, nav }) {
   const [selectedCity, setSelectedCity] = useState(cities[0]?.city || '')
   const maxCases = Math.max(1, ...cities.map((item) => item.total || 0))
   const activeCity = cities.find((item) => item.city === selectedCity) || cities[0]
+  const mapCities = cities.map((item, index) => {
+    const fallback = { x: 78 + (index % 3) * 6, y: 34 + Math.floor(index / 3) * 13 }
+    return { ...item, point: cityPoint(item.city) || fallback }
+  })
 
   return (
     <Panel style={{ padding: 22 }}>
@@ -707,7 +739,7 @@ function CityCasesPanel({ cities, total, nav }) {
         <div>
           <h3 style={{ margin: 0 }}>Mapa de calor por ciudad</h3>
           <p style={{ color: 'var(--muted)', marginTop: 6 }}>
-            Intensidad por volumen de siniestros y color de borde por nivel promedio de riesgo.
+            Ubicacion aproximada por ciudad; el tamano del punto representa volumen y el color indica riesgo promedio.
           </p>
         </div>
         <button onClick={() => nav('/siniestros')} style={panelButtonStyle}>Ver casos</button>
@@ -721,32 +753,77 @@ function CityCasesPanel({ cities, total, nav }) {
 
       {cities.length > 0 && (
         <>
-          <div className="city-heatmap-grid" style={cityHeatmapGridStyle}>
-            {cities.map((item) => {
-              const intensity = Math.max(0.18, item.total / maxCases)
-              const riskColor = item.scoreAvg >= 76 ? 'var(--risk-red)' : item.scoreAvg >= 41 ? 'var(--risk-yellow)' : 'var(--risk-green)'
-              const isActive = activeCity?.city === item.city
+          <div className="city-map-layout" style={cityMapLayoutStyle}>
+            <div style={cityMapFrameStyle}>
+              <svg viewBox="0 0 100 100" role="img" aria-label="Mapa de calor por ciudad" style={{ width: '100%', minHeight: 360, display: 'block' }}>
+                <defs>
+                  <linearGradient id="mapFill" x1="0" x2="1" y1="0" y2="1">
+                    <stop offset="0%" stopColor="#0f2a4d" />
+                    <stop offset="55%" stopColor="#10344d" />
+                    <stop offset="100%" stopColor="#123139" />
+                  </linearGradient>
+                  <filter id="cityGlow" x="-60%" y="-60%" width="220%" height="220%">
+                    <feGaussianBlur stdDeviation="2.4" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+                <rect x="0" y="0" width="100" height="100" rx="8" fill="#0b1229" />
+                <path
+                  d="M52 6 L63 14 L59 25 L66 33 L60 44 L64 56 L56 66 L59 78 L50 92 L40 86 L33 91 L26 78 L18 72 L23 61 L14 51 L20 42 L17 30 L25 20 L37 17 L43 8 Z"
+                  fill="url(#mapFill)"
+                  stroke="#334155"
+                  strokeWidth="1.2"
+                />
+                <path d="M45 9 C50 24 48 39 52 53 C56 66 51 78 49 91" fill="none" stroke="rgba(203,213,225,0.26)" strokeWidth="1.1" strokeDasharray="2 2" />
+                <path d="M18 72 C28 66 36 63 46 60 C55 57 60 52 64 44" fill="none" stroke="rgba(96,165,250,0.18)" strokeWidth="1" />
+                <text x="7" y="10" fill="#64748b" fontSize="4.2" fontWeight="700">Pacifico</text>
+                <text x="70" y="92" fill="#64748b" fontSize="4.2" fontWeight="700">Amazonia</text>
+                {mapCities.map((item) => {
+                  const intensity = Math.max(0.2, item.total / maxCases)
+                  const color = item.scoreAvg >= 76 ? '#ef4444' : item.scoreAvg >= 41 ? '#f59e0b' : '#10b981'
+                  const radius = 3.6 + intensity * 7.5
+                  const active = activeCity?.city === item.city
+                  return (
+                    <g key={item.city} filter="url(#cityGlow)" style={{ cursor: 'pointer' }} onClick={() => setSelectedCity(item.city)}>
+                      <circle cx={item.point.x} cy={item.point.y} r={radius + 2.5} fill={color} opacity={active ? 0.28 : 0.12} />
+                      <circle cx={item.point.x} cy={item.point.y} r={radius} fill={color} opacity={0.78} stroke={active ? '#e0f2fe' : '#0f172a'} strokeWidth={active ? 1.8 : 1} />
+                      <text x={item.point.x + radius + 2} y={item.point.y + 1.4} fill="#e2e8f0" fontSize="3.8" fontWeight="800">{item.city}</text>
+                      <text x={item.point.x + radius + 2} y={item.point.y + 5.4} fill="#94a3b8" fontSize="3.2">{item.total} casos</text>
+                    </g>
+                  )
+                })}
+              </svg>
+            </div>
 
-              return (
-                <button
-                  key={item.city}
-                  onClick={() => setSelectedCity(item.city)}
-                  style={cityHeatCellStyle(intensity, riskColor, isActive)}
-                  title={`${item.city}: ${item.total} casos, score promedio ${item.scoreAvg}`}
-                >
-                  <span style={{ fontSize: 13, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.city}</span>
-                  <strong style={{ fontSize: 26, lineHeight: 1 }}>{item.total}</strong>
-                  <span style={{ color: 'var(--muted)', fontSize: 12 }}>Score {item.scoreAvg}</span>
-                </button>
-              )
-            })}
+            <div style={cityMapSideStyle}>
+              {mapCities.map((item) => {
+                const riskColor = item.scoreAvg >= 76 ? 'var(--risk-red)' : item.scoreAvg >= 41 ? 'var(--risk-yellow)' : 'var(--risk-green)'
+                const isActive = activeCity?.city === item.city
+
+                return (
+                  <button
+                    key={item.city}
+                    onClick={() => setSelectedCity(item.city)}
+                    style={cityMapListButtonStyle(riskColor, isActive)}
+                    title={`${item.city}: ${item.total} casos, score promedio ${item.scoreAvg}`}
+                  >
+                    <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.city}</span>
+                    <strong>{item.total}</strong>
+                    <small style={{ color: 'var(--muted)' }}>Score {item.scoreAvg}</small>
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
           <div style={cityHeatmapLegendStyle}>
             <span><b style={{ color: 'var(--risk-green)' }}>Bajo</b> score promedio</span>
             <span><b style={{ color: 'var(--risk-yellow)' }}>Medio</b> score promedio</span>
             <span><b style={{ color: 'var(--risk-red)' }}>Critico</b> score promedio</span>
-            <span>Mas brillo = mas casos</span>
+            <span>Punto mas grande = mas casos</span>
           </div>
         </>
       )}
@@ -922,26 +999,43 @@ const portfolioStatsStyle = {
   gap: 10,
 }
 
-const cityHeatmapGridStyle = {
+const cityMapLayoutStyle = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-  gap: 12,
+  gridTemplateColumns: 'minmax(0, 1fr) minmax(220px, 300px)',
+  gap: 14,
   marginTop: 16,
+  alignItems: 'stretch',
 }
 
-function cityHeatCellStyle(intensity, riskColor, active) {
-  const glow = Math.round(18 + intensity * 44)
+const cityMapFrameStyle = {
+  minHeight: 380,
+  borderRadius: 8,
+  overflow: 'hidden',
+  background: '#0b1229',
+  border: '1px solid var(--border-light)',
+}
+
+const cityMapSideStyle = {
+  display: 'grid',
+  alignContent: 'start',
+  gap: 8,
+  maxHeight: 380,
+  overflowY: 'auto',
+  paddingRight: 4,
+}
+
+function cityMapListButtonStyle(riskColor, active) {
   return {
     display: 'grid',
-    gap: 8,
-    minHeight: 118,
-    padding: 14,
+    gridTemplateColumns: 'minmax(0, 1fr) auto',
+    gap: '4px 10px',
+    alignItems: 'center',
     textAlign: 'left',
-    borderRadius: 8,
-    background: `linear-gradient(135deg, rgba(20, 184, 166, ${0.12 + intensity * 0.28}), rgba(96, 165, 250, ${0.06 + intensity * 0.18}))`,
-    border: `1px solid ${riskColor}`,
+    background: active ? 'rgba(96, 165, 250, 0.16)' : '#111827',
+    border: `1px solid ${active ? riskColor : 'var(--border-light)'}`,
     color: 'var(--text)',
-    boxShadow: active ? `0 0 0 3px rgba(96, 165, 250, 0.22), 0 0 ${glow}px rgba(20, 184, 166, 0.18)` : `0 0 ${glow}px rgba(20, 184, 166, 0.08)`,
+    borderRadius: 8,
+    padding: 10,
   }
 }
 
