@@ -15,6 +15,11 @@ function shortDateLabel(value) {
   return date.toLocaleDateString('es-CO', { month: 'short', day: '2-digit' })
 }
 
+function topLabelFromMap(map, fallback) {
+  const [label] = Object.entries(map).sort((a, b) => b[1] - a[1])[0] || []
+  return label || fallback
+}
+
 function RiskPill({ level }) {
   const colors = {
     rojo: 'var(--risk-red)',
@@ -157,6 +162,7 @@ export default function Dashboard() {
     const uniqueProviders = new Set(claims.map((item) => item.beneficiario || '').filter(Boolean)).size
     const uniqueCoverages = new Set(claims.map((item) => item.cobertura || '').filter(Boolean)).size
     const uniqueLines = new Set(claims.map((item) => item.ramo || '').filter(Boolean)).size
+    const uniqueCities = new Set(claims.map((item) => item.ciudad || '').filter(Boolean)).size
 
     const providerMap = claims.reduce((acc, item) => {
       const provider = item.beneficiario || 'Proveedor desconocido'
@@ -185,6 +191,40 @@ export default function Dashboard() {
       }))
       .sort((a, b) => b.promedio - a.promedio)
       .slice(0, 5)
+
+    const cityMap = claims.reduce((acc, item) => {
+      const city = item.ciudad || 'Ciudad no registrada'
+      const level = item.nivel_riesgo || 'verde'
+      const coverage = item.cobertura || 'Sin cobertura'
+      const line = item.ramo || 'Sin ramo'
+      const bucket = acc[city] || {
+        city,
+        total: 0,
+        rojo: 0,
+        amarillo: 0,
+        verde: 0,
+        scoreSum: 0,
+        coverages: {},
+        lines: {},
+      }
+      bucket.total += 1
+      bucket[level] = (bucket[level] || 0) + 1
+      bucket.scoreSum += Number(item.score || 0)
+      bucket.coverages[coverage] = (bucket.coverages[coverage] || 0) + 1
+      bucket.lines[line] = (bucket.lines[line] || 0) + 1
+      acc[city] = bucket
+      return acc
+    }, {})
+
+    const topCities = Object.values(cityMap)
+      .map((item) => ({
+        ...item,
+        scoreAvg: item.total ? Math.round(item.scoreSum / item.total) : 0,
+        topCoverage: topLabelFromMap(item.coverages, 'Sin cobertura'),
+        topLine: topLabelFromMap(item.lines, 'Sin ramo'),
+      }))
+      .sort((a, b) => b.total - a.total || b.scoreAvg - a.scoreAvg)
+      .slice(0, 6)
 
     const coverageBreakdown = Object.entries(
       claims.reduce((acc, item) => {
@@ -241,9 +281,11 @@ export default function Dashboard() {
       uniqueProviders,
       uniqueCoverages,
       uniqueLines,
+      uniqueCities,
       topProviders,
       topRiskProviders,
       topProvidersMax: topProviders.reduce((max, item) => Math.max(max, item.total), 0),
+      topCities,
       coverageBreakdown,
       ramoBreakdown,
       trend,
@@ -404,6 +446,8 @@ export default function Dashboard() {
           nav={nav}
         />
       </div>
+
+      <CityCasesPanel cities={summary.topCities} total={summary.total} nav={nav} />
 
       <div className="dashboard-two-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <QuickSummaryPanel networks={networks} summary={summary} />
@@ -606,6 +650,7 @@ function QuickSummaryPanel({ networks, summary }) {
       </div>
       <div style={{ display: 'grid', gap: 12, marginTop: 18 }}>
         <SummaryLine label="Proveedores del archivo" value={summary.uniqueProviders} info="Total de proveedores unicos presentes en el archivo activo." />
+        <SummaryLine label="Ciudades del archivo" value={summary.uniqueCities} info="Ciudades unicas detectadas en los siniestros cargados." />
         <SummaryLine label="Casos con alertas" value={summary.claimsWithAlerts} info="Siniestros del archivo activo con al menos una alerta explicable." />
         <SummaryLine label="Coberturas del archivo" value={summary.uniqueCoverages} info="Coberturas unicas detectadas en los siniestros cargados." />
         <SummaryLine label="Ramos del archivo" value={summary.uniqueLines} info="Ramos unicos detectados en el archivo activo." />
@@ -637,6 +682,62 @@ function BusinessMixPanel({ ramoItems, coverageItems, nav }) {
       </div>
 
       <BreakdownChart items={activeItems} color={activeColor} />
+    </Panel>
+  )
+}
+
+function CityCasesPanel({ cities, total, nav }) {
+  return (
+    <Panel style={{ padding: 22 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+        <div>
+          <h3 style={{ margin: 0 }}>Ciudades con mas casos</h3>
+          <p style={{ color: 'var(--muted)', marginTop: 6 }}>
+            Representa las ciudades con mayor volumen de siniestros y el tipo de caso predominante por ramo y cobertura.
+          </p>
+        </div>
+        <button onClick={() => nav('/siniestros')} style={panelButtonStyle}>Ver casos</button>
+      </div>
+
+      <div style={{ display: 'grid', gap: 12, marginTop: 16 }}>
+        {cities.length === 0 && (
+          <div style={{ color: 'var(--muted)', padding: 14, border: '1px solid var(--border)', borderRadius: 8 }}>
+            No hay ciudades registradas en el archivo activo.
+          </div>
+        )}
+        {cities.map((item) => {
+          const cityPct = pct(item.total, total)
+          const redPct = pct(item.rojo, item.total)
+          const yellowPct = pct(item.amarillo, item.total)
+          const greenPct = Math.max(0, 100 - redPct - yellowPct)
+
+          return (
+            <div key={item.city} style={cityRowStyle}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                  <strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.city}</strong>
+                  <span style={{ color: 'var(--accent)', fontWeight: 900 }}>{item.total} casos</span>
+                </div>
+                <div style={{ display: 'flex', height: 12, borderRadius: 999, overflow: 'hidden', background: 'var(--border)', marginTop: 10 }}>
+                  <div title={`${greenPct}% verde`} style={{ width: `${greenPct}%`, background: 'var(--risk-green)' }} />
+                  <div title={`${yellowPct}% amarillo`} style={{ width: `${yellowPct}%`, background: 'var(--risk-yellow)' }} />
+                  <div title={`${redPct}% rojo`} style={{ width: `${redPct}%`, background: 'var(--risk-red)' }} />
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                  <span style={cityTagStyle}>Ramo: {item.topLine}</span>
+                  <span style={cityTagStyle}>Cobertura: {item.topCoverage}</span>
+                  <span style={cityTagStyle}>{cityPct}% del archivo</span>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gap: 6, justifyItems: 'end', alignContent: 'center' }}>
+                <strong style={{ color: item.scoreAvg >= 76 ? 'var(--risk-red)' : item.scoreAvg >= 41 ? 'var(--risk-yellow)' : 'var(--risk-green)', fontSize: 22 }}>{item.scoreAvg}</strong>
+                <span style={{ color: 'var(--muted)', fontSize: 12 }}>Score prom.</span>
+                <span style={{ color: 'var(--muted)', fontSize: 12 }}>{item.rojo} rojos</span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </Panel>
   )
 }
@@ -749,6 +850,30 @@ const priorityRowStyle = {
   padding: 14,
   borderRadius: 'var(--radius-lg)',
   textAlign: 'left',
+}
+
+const cityRowStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr) minmax(84px, auto)',
+  gap: 14,
+  alignItems: 'center',
+  background: 'var(--panel-bg)',
+  border: '1px solid var(--border)',
+  padding: 14,
+  borderRadius: 8,
+}
+
+const cityTagStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  minHeight: 26,
+  padding: '5px 8px',
+  borderRadius: 999,
+  background: '#111827',
+  border: '1px solid var(--border-light)',
+  color: 'var(--text-secondary)',
+  fontSize: 12,
+  fontWeight: 800,
 }
 
 const segmentedControlStyle = {

@@ -47,10 +47,12 @@ function genOne(i) {
   const score = rand(0, 100)
   const fecha = subDays(new Date(), rand(1, 90))
   const alerts = makeAlerts(score)
+  const ciudades = ['Bogota', 'Medellin', 'Cali', 'Quito', 'Guayaquil', 'Cuenca']
   return {
     id_siniestro: `SIN-${String(1000 + i).slice(-4)}`,
     ramo: 'Vehiculos',
     cobertura: i % 2 ? 'Robo' : 'Choque',
+    ciudad: ciudades[i % ciudades.length],
     monto_reclamado: rand(1000, 50000),
     fecha_ocurrencia: formatISO(fecha, { representation: 'date' }),
     score,
